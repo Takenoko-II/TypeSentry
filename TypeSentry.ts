@@ -204,4 +204,4 @@ const sentry: TypeSentry = new TypeSentry();
 
 const a = sentry.cast("foo", TypeSentry.objectOf({length: TypeSentry.STRING}));
 
-// readonly はいらない
+// readonly はいらない, 型チェックのためだけのライブラリだから
