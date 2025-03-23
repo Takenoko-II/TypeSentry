@@ -150,7 +150,8 @@ class ObjectType<T> extends Type<T> {
         if (x === null) return false;
 
         for (const [key, type] of Object.entries(this.object as Record<string | number | symbol, Type<unknown>>)) {
-            const value: unknown = x[key];
+
+            const value: unknown = (x as Record<string | number | symbol, unknown>)[key];
             if (!type.test(value)) return false;
         }
 
