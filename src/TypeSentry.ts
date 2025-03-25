@@ -50,6 +50,42 @@ class NumberType extends PrimitiveType<number> {
     }
 
     public static readonly INSTANCE: NumberType = new this();
+
+    public static readonly IntType = class IntType extends NumberType {
+        public test(x: unknown): x is number {
+            return super.test(x) && Number.isInteger(x);
+        }
+
+        public nonNaN(): IntType {
+            return new (class extends IntType {
+                public test(x: unknown): x is number {
+                    return super.test(x) && !Number.isNaN(x);
+                }
+            })();
+        }
+
+        public static readonly INSTANCE: IntType = new this();
+    }
+
+    public static readonly DecimalType = class DecimalType extends NumberType {
+        public test(x: unknown): x is number {
+            return super.test(x) && !Number.isInteger(x);
+        }
+
+        public nonNaN(): DecimalType {
+            return new (class extends DecimalType {
+                public test(x: unknown): x is number {
+                    return super.test(x) && !Number.isNaN(x);
+                }
+            })();
+        }
+
+        public static readonly INSTANCE: DecimalType = new this();
+    }
+
+    public readonly int = NumberType.IntType.INSTANCE;
+
+    public readonly decimal = NumberType.DecimalType.INSTANCE;
 }
 
 class BigIntType extends PrimitiveType<bigint> {
@@ -140,7 +176,7 @@ type ExtractTypeInObjectValue<T> = {
 class ObjectType<T> extends Type<T> {
     private readonly object: T;
 
-    private constructor(object: T) {
+    protected constructor(object: T) {
         super();
         this.object = object;
     }
@@ -156,6 +192,17 @@ class ObjectType<T> extends Type<T> {
         }
 
         return true;
+    }
+
+    public exact(): ObjectType<T> {
+        return new (class extends ObjectType<T> {
+            public test(x: unknown): x is T {
+                if (super.test(x)) {
+                    return Object.keys(x as object).length === Object.keys(this.object as object).length;
+                }
+                else return false;
+            }
+        })(this.object);
     }
 
     public static newInstance<U extends Record<string | number | symbol, Type<unknown>>>(object: U): ObjectType<ExtractTypeInObjectValue<U>> {
