@@ -50,8 +50,6 @@ class NumberType extends PrimitiveType<number> {
     }
 
     public static readonly INSTANCE: NumberType = new this();
-
-    public readonly int = IntType.INSTANCE;
 }
 
 class IntType extends NumberType {
@@ -375,6 +373,8 @@ export class TypeSentry {
     public readonly void: VoidType = VoidType.INSTANCE;
 
     public readonly function: FunctionType = FunctionType.INSTANCE;
+
+    public readonly int: IntType = IntType.INSTANCE;
 
     public objectOf<U extends Record<string | number | symbol, Type<unknown>>>(object: U): ObjectType<ExtractTypeInObjectValue<U>> {
         return ObjectType.newInstance(object);

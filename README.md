@@ -45,10 +45,10 @@ const vector2Type = sentry.objectOf({
 
 const itemType = sentry.objectOf({
     id: sentry.string,
-    count: sentry.unionOf(sentry.number.int.nonNaN(), sentry.bigint),
+    count: sentry.unionOf(sentry.int.nonNaN(), sentry.bigint),
     components: sentry.objectOf({
         attributes: sentry.setOf(sentry.string),
-        uuid: sentry.arrayOf(sentry.number.int.nonNaN())
+        uuid: sentry.arrayOf(sentry.int.nonNaN())
     })
 });
 
