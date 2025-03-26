@@ -321,7 +321,7 @@ class SetType<T> extends Type<Set<T>> {
 
     public test(x: unknown): x is Set<T> {
         if (!(x instanceof Set)) return false;
-        for (const [key, value] of x.values()) {
+        for (const value of x.values()) {
             if (!this.valueType.test(value)) return false;
         }
 
