@@ -15,6 +15,12 @@ declare class NumberType extends PrimitiveType<number> {
     test(x: unknown): x is number;
     nonNaN(): NumberType;
     static readonly INSTANCE: NumberType;
+    readonly int: IntType;
+}
+declare class IntType extends NumberType {
+    test(x: unknown): x is number;
+    nonNaN(): IntType;
+    static readonly INSTANCE: IntType;
 }
 declare class BigIntType extends PrimitiveType<bigint> {
     test(x: unknown): x is bigint;
@@ -55,8 +61,9 @@ type ExtractTypeInObjectValue<T> = {
 };
 declare class ObjectType<T> extends Type<T> {
     private readonly object;
-    private constructor();
+    protected constructor(object: T);
     test(x: unknown): x is T;
+    exact(): ObjectType<T>;
     static newInstance<U extends Record<string | number | symbol, Type<unknown>>>(object: U): ObjectType<ExtractTypeInObjectValue<U>>;
 }
 declare class ArrayType<T> extends Type<T[]> {

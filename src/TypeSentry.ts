@@ -51,41 +51,23 @@ class NumberType extends PrimitiveType<number> {
 
     public static readonly INSTANCE: NumberType = new this();
 
-    public static readonly IntType = class IntType extends NumberType {
-        public test(x: unknown): x is number {
-            return super.test(x) && Number.isInteger(x);
-        }
+    public readonly int = IntType.INSTANCE;
+}
 
-        public nonNaN(): IntType {
-            return new (class extends IntType {
-                public test(x: unknown): x is number {
-                    return super.test(x) && !Number.isNaN(x);
-                }
-            })();
-        }
-
-        public static readonly INSTANCE: IntType = new this();
+class IntType extends NumberType {
+    public test(x: unknown): x is number {
+        return super.test(x) && Number.isInteger(x);
     }
 
-    public static readonly DecimalType = class DecimalType extends NumberType {
-        public test(x: unknown): x is number {
-            return super.test(x) && !Number.isInteger(x);
-        }
-
-        public nonNaN(): DecimalType {
-            return new (class extends DecimalType {
-                public test(x: unknown): x is number {
-                    return super.test(x) && !Number.isNaN(x);
-                }
-            })();
-        }
-
-        public static readonly INSTANCE: DecimalType = new this();
+    public nonNaN(): IntType {
+        return new (class extends IntType {
+            public test(x: unknown): x is number {
+                return super.test(x) && !Number.isNaN(x);
+            }
+        })();
     }
 
-    public readonly int = NumberType.IntType.INSTANCE;
-
-    public readonly decimal = NumberType.DecimalType.INSTANCE;
+    public static readonly INSTANCE: IntType = new this();
 }
 
 class BigIntType extends PrimitiveType<bigint> {

@@ -40,6 +40,20 @@ class NumberType extends PrimitiveType {
         })();
     }
     static INSTANCE = new this();
+    int = IntType.INSTANCE;
+}
+class IntType extends NumberType {
+    test(x) {
+        return super.test(x) && Number.isInteger(x);
+    }
+    nonNaN() {
+        return new (class extends IntType {
+            test(x) {
+                return super.test(x) && !Number.isNaN(x);
+            }
+        })();
+    }
+    static INSTANCE = new this();
 }
 class BigIntType extends PrimitiveType {
     test(x) {
@@ -116,6 +130,17 @@ class ObjectType extends Type {
                 return false;
         }
         return true;
+    }
+    exact() {
+        return new (class extends ObjectType {
+            test(x) {
+                if (super.test(x)) {
+                    return Object.keys(x).length === Object.keys(this.object).length;
+                }
+                else
+                    return false;
+            }
+        })(this.object);
     }
     static newInstance(object) {
         return new this(object);
