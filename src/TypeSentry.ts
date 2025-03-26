@@ -1,4 +1,4 @@
-abstract class Type<T> {
+export abstract class Type<T> {
     public constructor() {}
 
     public abstract test(x: unknown): x is T;
@@ -19,12 +19,12 @@ abstract class PrimitiveType<T extends boolean | number | bigint | string | null
     }
 
     public override test(x: unknown): x is T {
-        return TypeSentry.INSTANCE.boolean.test(x)
-            || TypeSentry.INSTANCE.number.test(x)
-            || TypeSentry.INSTANCE.bigint.test(x)
-            || TypeSentry.INSTANCE.string.test(x)
-            || TypeSentry.INSTANCE.null.test(x)
-            || TypeSentry.INSTANCE.undefined.test(x);
+        return sentry.boolean.test(x)
+            || sentry.number.test(x)
+            || sentry.bigint.test(x)
+            || sentry.string.test(x)
+            || sentry.null.test(x)
+            || sentry.undefined.test(x);
     }
 }
 
@@ -283,7 +283,7 @@ class OptionalType<T> extends Type<T | undefined> {
 
     public override test(x: unknown): x is (T | undefined) {
         return this.type.test(x)
-            || TypeSentry.INSTANCE.undefined.test(x);
+            || sentry.undefined.test(x);
     }
 
     public static newInstance<U>(type: Type<U>): OptionalType<U> {
@@ -351,8 +351,10 @@ class TypeSentryError extends TypeError {
     }
 }
 
-class TypeSentry {
-    private constructor() {}
+const INTERNAL_CONSTRUCTOR_KEY = Symbol();
+
+export class TypeSentry {
+    protected constructor(key: typeof INTERNAL_CONSTRUCTOR_KEY) {}
 
     public readonly boolean: BooleanType = BooleanType.INSTANCE;
 
@@ -405,8 +407,8 @@ class TypeSentry {
     public classOf<U extends Function>(constructor: U): ClassType<U["prototype"]> {
         return ClassType.newInstance(constructor);
     }
-
-    public static readonly INSTANCE = new this();
 }
 
-export const sentry: TypeSentry = TypeSentry.INSTANCE;
+export const sentry: TypeSentry = (class extends TypeSentry {
+    public static readonly INSTANCE: TypeSentry = new this(INTERNAL_CONSTRUCTOR_KEY);
+}).INSTANCE;
