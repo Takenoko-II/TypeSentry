@@ -38,6 +38,8 @@ console.log(add("str", 1)); // TypeSentryError: キャストに失敗しまし�
 ### 型定義
 
 ```ts
+import { sentry, Type } from "./TypeSentry";
+
 const vector2Type = sentry.objectOf({
     x: sentry.number,
     y: sentry.number
@@ -55,7 +57,7 @@ const itemType = sentry.objectOf({
 let x: unknown;
 let y: unknown;
 
-if (vectorType.test(x)) {
+if (vector2Type.test(x)) {
     // unknown -> { x: number; y: number } に型変換される
 }
 

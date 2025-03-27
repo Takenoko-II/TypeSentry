@@ -1,4 +1,4 @@
-import { Type, sentry } from "./TypeSentry";
+import { TypeModel, sentry } from "./TypeSentry";
 
 interface Named {
     name: string;
@@ -20,11 +20,11 @@ interface Example {
     baz?: (Named & Vector)[]
 }
 
-const namedType: Type<Named> = sentry.objectOf({
+const namedType: TypeModel<Named> = sentry.objectOf({
     name: sentry.string
 });
 
-const vectorType: Type<Vector> = sentry.objectOf({
+const vectorType: TypeModel<Vector> = sentry.objectOf({
     x: sentry.number,
     y: sentry.number,
     z: sentry.number
