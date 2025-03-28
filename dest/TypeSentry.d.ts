@@ -1,141 +1,173 @@
-declare abstract class Type<T> {
+export declare abstract class TypeModel<T> {
     constructor();
     abstract test(x: unknown): x is T;
     cast(x: unknown): T;
 }
-declare abstract class PrimitiveType<T extends boolean | number | bigint | string | null | undefined> extends Type<T> {
+declare abstract class PrimitiveModel<T extends boolean | number | bigint | string | null | undefined> extends TypeModel<T> {
     protected constructor();
     test(x: unknown): x is T;
 }
-declare class BooleanType extends PrimitiveType<boolean> {
+declare class BooleanModel extends PrimitiveModel<boolean> {
     test(x: unknown): x is boolean;
-    static readonly INSTANCE: BooleanType;
+    static readonly INSTANCE: BooleanModel;
 }
-declare class NumberType extends PrimitiveType<number> {
+declare class NumberModel extends PrimitiveModel<number> {
     test(x: unknown): x is number;
-    nonNaN(): NumberType;
-    static readonly INSTANCE: NumberType;
-    readonly int: IntType;
+    nonNaN(): NumberModel;
+    static readonly INSTANCE: NumberModel;
 }
-declare class IntType extends NumberType {
+declare class IntModel extends NumberModel {
     test(x: unknown): x is number;
-    nonNaN(): IntType;
-    static readonly INSTANCE: IntType;
+    nonNaN(): IntModel;
+    static readonly INSTANCE: IntModel;
 }
-declare class BigIntType extends PrimitiveType<bigint> {
+declare class BigIntModel extends PrimitiveModel<bigint> {
     test(x: unknown): x is bigint;
-    static readonly INSTANCE: BigIntType;
+    static readonly INSTANCE: BigIntModel;
 }
 interface LengthRange {
     readonly min?: number;
     readonly max?: number;
 }
-declare class StringType extends PrimitiveType<string> {
+declare class StringModel extends PrimitiveModel<string> {
     test(x: unknown): x is string;
-    lengthLimited(range: LengthRange): StringType;
-    static readonly INSTANCE: StringType;
+    withLength(range: LengthRange): StringModel;
+    withPattern(pattern: RegExp): StringModel;
+    static readonly INSTANCE: StringModel;
 }
-declare class NullType extends PrimitiveType<null> {
+declare class NullModel extends PrimitiveModel<null> {
     test(x: unknown): x is null;
-    static readonly INSTANCE: NullType;
+    static readonly INSTANCE: NullModel;
 }
-declare class UndefinedType extends PrimitiveType<undefined> {
+declare class UndefinedModel extends PrimitiveModel<undefined> {
     test(x: unknown): x is undefined;
-    static readonly INSTANCE: UndefinedType;
+    static readonly INSTANCE: UndefinedModel;
 }
-declare class AnyType extends Type<any> {
+declare class AnyModel extends TypeModel<any> {
     private constructor();
     test(x: unknown): x is any;
-    static readonly INSTANCE: AnyType;
+    static readonly INSTANCE: AnyModel;
 }
-declare class NeverType extends Type<never> {
+declare class NeverModel extends TypeModel<never> {
     test(x: unknown): x is never;
-    static readonly INSTANCE: NeverType;
+    static readonly INSTANCE: NeverModel;
 }
-declare class VoidType extends Type<void> {
+declare class VoidModel extends TypeModel<void> {
     test(x: unknown): x is void;
-    static readonly INSTANCE: VoidType;
+    static readonly INSTANCE: VoidModel;
 }
 type ExtractTypeInObjectValue<T> = {
-    [K in keyof T]: T[K] extends Type<infer U> ? U : never;
+    [K in keyof T]: T[K] extends TypeModel<infer U> ? U : never;
 };
-declare class ObjectType<T> extends Type<T> {
+declare class ObjectModel<T> extends TypeModel<T> {
     private readonly object;
     protected constructor(object: T);
     test(x: unknown): x is T;
-    exact(): ObjectType<T>;
-    static newInstance<U extends Record<string | number | symbol, Type<unknown>>>(object: U): ObjectType<ExtractTypeInObjectValue<U>>;
+    exact(): ObjectModel<T>;
+    static newInstance<U extends Record<string | number | symbol, TypeModel<unknown>>>(object: U): ObjectModel<ExtractTypeInObjectValue<U>>;
 }
-declare class ArrayType<T> extends Type<T[]> {
+declare class ArrayModel<T> extends TypeModel<T[]> {
     private readonly type;
-    constructor(type: Type<T>);
+    constructor(type: TypeModel<T>);
     test(x: unknown): x is T[];
-    lengthLimited(range: LengthRange): ArrayType<T>;
+    withLength(range: LengthRange): ArrayModel<T>;
+    getModelOfElement(): TypeModel<T>;
 }
-declare class FunctionType extends Type<Function> {
+declare class FunctionModel extends TypeModel<Function> {
     private constructor();
     test(x: unknown): x is Function;
-    static readonly INSTANCE: FunctionType;
+    static readonly INSTANCE: FunctionModel;
 }
-type ExtractTypes<U extends Type<unknown>[]> = U[number] extends Type<infer V> ? V : never;
-declare class UnionType<T> extends Type<T> {
+type ExtractTypes<U extends TypeModel<unknown>[]> = U[number] extends TypeModel<infer V> ? V : never;
+declare class UnionModel<T> extends TypeModel<T> {
     private readonly types;
     private constructor();
     test(x: unknown): x is T;
-    static newInstance<U extends Type<unknown>[]>(...types: U): UnionType<ExtractTypes<U>>;
+    static newInstance<U extends TypeModel<unknown>[]>(...types: U): UnionModel<ExtractTypes<U>>;
 }
 type UnionToIntersection<U> = (U extends unknown ? (k: U) => void : never) extends ((k: infer I) => void) ? I : never;
-type ExtractIntersectTypes<T extends Type<unknown>[]> = UnionToIntersection<(T extends Type<infer U>[] ? U[] : never)[number]>;
-declare class IntersectionType<T> extends Type<T> {
+type ExtractIntersectTypes<T extends TypeModel<unknown>[]> = UnionToIntersection<(T extends TypeModel<infer U>[] ? U[] : never)[number]>;
+declare class IntersectionModel<T> extends TypeModel<T> {
     private readonly types;
     private constructor();
     test(x: unknown): x is T;
-    static newInstance<U extends Type<unknown>[]>(...types: U): IntersectionType<ExtractIntersectTypes<U>>;
+    static newInstance<U extends TypeModel<unknown>[]>(...types: U): IntersectionModel<ExtractIntersectTypes<U>>;
 }
-declare class OptionalType<T> extends Type<T | undefined> {
+declare class OptionalModel<T> extends TypeModel<T | undefined> {
     private readonly type;
     private constructor();
     test(x: unknown): x is (T | undefined);
-    static newInstance<U>(type: Type<U>): OptionalType<U>;
+    unwrap(): TypeModel<T>;
+    static newInstance<U>(type: TypeModel<U>): OptionalModel<U>;
 }
-declare class MapType<K, V> extends Type<Map<K, V>> {
+declare class NullableModel<T> extends TypeModel<T | null> {
+    private readonly type;
+    private constructor();
+    test(x: unknown): x is (T | null);
+    unwrap(): TypeModel<T>;
+    static newInstance<U>(type: TypeModel<U>): NullableModel<U>;
+}
+declare class MapModel<K, V> extends TypeModel<Map<K, V>> {
     private readonly keyType;
     private readonly valueType;
-    constructor(keyType: Type<K>, valueType: Type<V>);
+    constructor(keyType: TypeModel<K>, valueType: TypeModel<V>);
     test(x: unknown): x is Map<K, V>;
+    getModelOfKey(): TypeModel<K>;
+    getModelOfValue(): TypeModel<V>;
 }
-declare class SetType<T> extends Type<Set<T>> {
+declare class SetModel<T> extends TypeModel<Set<T>> {
     private readonly valueType;
-    constructor(valueType: Type<T>);
+    constructor(valueType: TypeModel<T>);
     test(x: unknown): x is Set<T>;
+    getModelOfElement(): TypeModel<T>;
 }
-declare class ClassType<T> extends Type<T> {
+declare class ClassModel<T> extends TypeModel<T> {
     private readonly constructorObject;
     private constructor();
     test(x: unknown): x is T;
-    static newInstance<U extends Function>(constructor: U): ClassType<U["prototype"]>;
+    static newInstance<U extends Function>(constructor: U): ClassModel<U["prototype"]>;
 }
-declare class TypeSentry {
+type TypeModelArrayToTuple<T extends TypeModel<unknown>[]> = {
+    [K in keyof T]: T[K] extends TypeModel<infer U> ? U : never;
+};
+declare class TupleModel<T extends TypeModel<unknown>[]> extends TypeModel<TypeModelArrayToTuple<T>> {
+    private readonly tuple;
     private constructor();
-    readonly boolean: BooleanType;
-    readonly number: NumberType;
-    readonly bigint: BigIntType;
-    readonly string: StringType;
-    readonly null: NullType;
-    readonly undefined: UndefinedType;
-    readonly any: AnyType;
-    readonly never: NeverType;
-    readonly void: VoidType;
-    readonly function: FunctionType;
-    objectOf<U extends Record<string | number | symbol, Type<unknown>>>(object: U): ObjectType<ExtractTypeInObjectValue<U>>;
-    arrayOf<U>(type: Type<U>): ArrayType<U>;
-    mapOf<K, V>(keyType: Type<K>, valueType: Type<V>): MapType<K, V>;
-    setOf<T>(valueType: Type<T>): SetType<T>;
-    unionOf<U extends Type<unknown>[]>(...types: U): UnionType<ExtractTypes<U>>;
-    intersectionOf<U extends Type<unknown>[]>(...types: U): IntersectionType<ExtractIntersectTypes<U>>;
-    optionalOf<U>(type: Type<U>): OptionalType<U>;
-    classOf<U extends Function>(constructor: U): ClassType<U["prototype"]>;
-    static readonly INSTANCE: TypeSentry;
+    test(x: unknown): x is TypeModelArrayToTuple<T>;
+    static newInstance<T extends TypeModel<unknown>[]>(...elements: T): TupleModel<T>;
+}
+declare class LiteralModel<T extends boolean | number | bigint | string | null | undefined> extends PrimitiveModel<T> {
+    private readonly value;
+    constructor(value: T);
+    test(x: unknown): x is T;
+    getLiteralValue(): T;
+    static newInstance<U extends boolean | number | bigint | string | null | undefined>(string: U): LiteralModel<U>;
+}
+declare const INTERNAL_CONSTRUCTOR_KEY: unique symbol;
+export declare class TypeSentry {
+    protected constructor(key: typeof INTERNAL_CONSTRUCTOR_KEY);
+    readonly boolean: BooleanModel;
+    readonly number: NumberModel;
+    readonly bigint: BigIntModel;
+    readonly string: StringModel;
+    readonly null: NullModel;
+    readonly undefined: UndefinedModel;
+    readonly any: AnyModel;
+    readonly never: NeverModel;
+    readonly void: VoidModel;
+    readonly function: FunctionModel;
+    readonly int: IntModel;
+    objectOf<U extends Record<string | number | symbol, TypeModel<unknown>>>(object: U): ObjectModel<ExtractTypeInObjectValue<U>>;
+    arrayOf<U>(type: TypeModel<U>): ArrayModel<U>;
+    mapOf<K, V>(keyType: TypeModel<K>, valueType: TypeModel<V>): MapModel<K, V>;
+    setOf<T>(valueType: TypeModel<T>): SetModel<T>;
+    unionOf<U extends TypeModel<unknown>[]>(...types: U): UnionModel<ExtractTypes<U>>;
+    intersectionOf<U extends TypeModel<unknown>[]>(...types: U): IntersectionModel<ExtractIntersectTypes<U>>;
+    optionalOf<U>(type: TypeModel<U>): OptionalModel<U>;
+    nullableOf<U>(type: TypeModel<U>): NullableModel<U>;
+    classOf<U extends Function>(constructor: U): ClassModel<U["prototype"]>;
+    tupleOf<U extends TypeModel<unknown>[]>(...elements: U): TupleModel<U>;
+    literalOf<U extends boolean | number | bigint | string | null | undefined>(literal: U): LiteralModel<U>;
 }
 export declare const sentry: TypeSentry;
 export {};

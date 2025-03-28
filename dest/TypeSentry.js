@@ -1,4 +1,4 @@
-class Type {
+export class TypeModel {
     constructor() { }
     cast(x) {
         if (this.test(x)) {
@@ -9,90 +9,100 @@ class Type {
         }
     }
 }
-class PrimitiveType extends Type {
+class PrimitiveModel extends TypeModel {
     constructor() {
         super();
     }
     test(x) {
-        return TypeSentry.INSTANCE.boolean.test(x)
-            || TypeSentry.INSTANCE.number.test(x)
-            || TypeSentry.INSTANCE.bigint.test(x)
-            || TypeSentry.INSTANCE.string.test(x)
-            || TypeSentry.INSTANCE.null.test(x)
-            || TypeSentry.INSTANCE.undefined.test(x);
+        return sentry.boolean.test(x)
+            || sentry.number.test(x)
+            || sentry.bigint.test(x)
+            || sentry.string.test(x)
+            || sentry.null.test(x)
+            || sentry.undefined.test(x);
     }
 }
-class BooleanType extends PrimitiveType {
+class BooleanModel extends PrimitiveModel {
     test(x) {
         return typeof x === "boolean";
     }
     static INSTANCE = new this();
 }
-class NumberType extends PrimitiveType {
+class NumberModel extends PrimitiveModel {
     test(x) {
         return typeof x === "number";
     }
     nonNaN() {
-        return new (class extends NumberType {
+        const that = this;
+        return new (class extends NumberModel {
             test(x) {
-                return super.test(x) && !Number.isNaN(x);
+                return that.test(x) && !Number.isNaN(x);
             }
         })();
     }
     static INSTANCE = new this();
-    int = IntType.INSTANCE;
 }
-class IntType extends NumberType {
+class IntModel extends NumberModel {
     test(x) {
         return super.test(x) && Number.isInteger(x);
     }
     nonNaN() {
-        return new (class extends IntType {
+        const that = this;
+        return new (class extends IntModel {
             test(x) {
-                return super.test(x) && !Number.isNaN(x);
+                return that.test(x) && !Number.isNaN(x);
             }
         })();
     }
     static INSTANCE = new this();
 }
-class BigIntType extends PrimitiveType {
+class BigIntModel extends PrimitiveModel {
     test(x) {
         return typeof x === "bigint";
     }
     static INSTANCE = new this();
 }
 ;
-class StringType extends PrimitiveType {
+class StringModel extends PrimitiveModel {
     test(x) {
         return typeof x === "string";
     }
-    lengthLimited(range) {
+    withLength(range) {
         const min = range.min === undefined ? 0 : range.min;
         const max = range.max === undefined ? Infinity : range.max;
         if (min > max || min < 0) {
             throw TypeError("無効な範囲です");
         }
-        return new (class extends StringType {
+        const that = this;
+        return new (class extends StringModel {
             test(x) {
-                return super.test(x) && (min <= x.length && x.length <= max);
+                return that.test(x) && (min <= x.length && x.length <= max);
+            }
+        })();
+    }
+    withPattern(pattern) {
+        const that = this;
+        return new (class extends StringModel {
+            test(x) {
+                return that.test(x) && new RegExp(pattern).test(x);
             }
         })();
     }
     static INSTANCE = new this();
 }
-class NullType extends PrimitiveType {
+class NullModel extends PrimitiveModel {
     test(x) {
         return x === null;
     }
     static INSTANCE = new this();
 }
-class UndefinedType extends PrimitiveType {
+class UndefinedModel extends PrimitiveModel {
     test(x) {
         return x === undefined;
     }
     static INSTANCE = new this();
 }
-class AnyType extends Type {
+class AnyModel extends TypeModel {
     constructor() {
         super();
     }
@@ -101,19 +111,19 @@ class AnyType extends Type {
     }
     static INSTANCE = new this();
 }
-class NeverType extends Type {
+class NeverModel extends TypeModel {
     test(x) {
         return false;
     }
     static INSTANCE = new this();
 }
-class VoidType extends Type {
+class VoidModel extends TypeModel {
     test(x) {
         return x === undefined;
     }
     static INSTANCE = new this();
 }
-class ObjectType extends Type {
+class ObjectModel extends TypeModel {
     object;
     constructor(object) {
         super();
@@ -132,9 +142,10 @@ class ObjectType extends Type {
         return true;
     }
     exact() {
-        return new (class extends ObjectType {
+        const that = this;
+        return new (class extends ObjectModel {
             test(x) {
-                if (super.test(x)) {
+                if (that.test(x)) {
                     return Object.keys(x).length === Object.keys(this.object).length;
                 }
                 else
@@ -146,7 +157,7 @@ class ObjectType extends Type {
         return new this(object);
     }
 }
-class ArrayType extends Type {
+class ArrayModel extends TypeModel {
     type;
     constructor(type) {
         super();
@@ -156,20 +167,24 @@ class ArrayType extends Type {
         return Array.isArray(x)
             && x.every(e => this.type.test(e));
     }
-    lengthLimited(range) {
+    withLength(range) {
         const min = range.min === undefined ? 0 : range.min;
         const max = range.max === undefined ? Infinity : range.max;
         if (min > max || min < 0) {
             throw TypeError("無効な範囲です");
         }
-        return new (class extends ArrayType {
+        const that = this;
+        return new (class extends ArrayModel {
             test(x) {
-                return super.test(x) && (min <= x.length && x.length <= max);
+                return that.test(x) && (min <= x.length && x.length <= max);
             }
         })(this.type);
     }
+    getModelOfElement() {
+        return this.type;
+    }
 }
-class FunctionType extends Type {
+class FunctionModel extends TypeModel {
     constructor() {
         super();
     }
@@ -178,7 +193,7 @@ class FunctionType extends Type {
     }
     static INSTANCE = new this();
 }
-class UnionType extends Type {
+class UnionModel extends TypeModel {
     types;
     constructor(...types) {
         super();
@@ -191,7 +206,7 @@ class UnionType extends Type {
         return new this(...types);
     }
 }
-class IntersectionType extends Type {
+class IntersectionModel extends TypeModel {
     types;
     constructor(...types) {
         super();
@@ -204,7 +219,7 @@ class IntersectionType extends Type {
         return new this(...types);
     }
 }
-class OptionalType extends Type {
+class OptionalModel extends TypeModel {
     type;
     constructor(type) {
         super();
@@ -212,13 +227,33 @@ class OptionalType extends Type {
     }
     test(x) {
         return this.type.test(x)
-            || TypeSentry.INSTANCE.undefined.test(x);
+            || sentry.undefined.test(x);
+    }
+    unwrap() {
+        return this.type;
     }
     static newInstance(type) {
         return new this(type);
     }
 }
-class MapType extends Type {
+class NullableModel extends TypeModel {
+    type;
+    constructor(type) {
+        super();
+        this.type = type;
+    }
+    test(x) {
+        return this.type.test(x)
+            || sentry.null.test(x);
+    }
+    unwrap() {
+        return this.type;
+    }
+    static newInstance(type) {
+        return new this(type);
+    }
+}
+class MapModel extends TypeModel {
     keyType;
     valueType;
     constructor(keyType, valueType) {
@@ -237,8 +272,14 @@ class MapType extends Type {
         }
         return true;
     }
+    getModelOfKey() {
+        return this.keyType;
+    }
+    getModelOfValue() {
+        return this.valueType;
+    }
 }
-class SetType extends Type {
+class SetModel extends TypeModel {
     valueType;
     constructor(valueType) {
         super();
@@ -247,14 +288,17 @@ class SetType extends Type {
     test(x) {
         if (!(x instanceof Set))
             return false;
-        for (const [key, value] of x.values()) {
+        for (const value of x.values()) {
             if (!this.valueType.test(value))
                 return false;
         }
         return true;
     }
+    getModelOfElement() {
+        return this.valueType;
+    }
 }
-class ClassType extends Type {
+class ClassModel extends TypeModel {
     constructorObject;
     constructor(constructorObject) {
         super();
@@ -267,47 +311,96 @@ class ClassType extends Type {
         return new this(constructor);
     }
 }
+class TupleModel extends TypeModel {
+    tuple;
+    constructor(tuple) {
+        super();
+        this.tuple = tuple;
+    }
+    test(x) {
+        if (!Array.isArray(x))
+            return false;
+        else if (x.length !== this.tuple.length)
+            return false;
+        for (const [index, model] of this.tuple.entries()) {
+            if (!model.test(x[index]))
+                return false;
+        }
+        return true;
+    }
+    static newInstance(...elements) {
+        return new this(elements);
+    }
+}
+class LiteralModel extends PrimitiveModel {
+    value;
+    constructor(value) {
+        super();
+        this.value = value;
+    }
+    test(x) {
+        return x === this.value;
+    }
+    getLiteralValue() {
+        return this.value;
+    }
+    static newInstance(string) {
+        return new this(string);
+    }
+}
 class TypeSentryError extends TypeError {
     constructor(message) {
         super(message);
     }
 }
-class TypeSentry {
-    constructor() { }
-    boolean = BooleanType.INSTANCE;
-    number = NumberType.INSTANCE;
-    bigint = BigIntType.INSTANCE;
-    string = StringType.INSTANCE;
-    null = NullType.INSTANCE;
-    undefined = UndefinedType.INSTANCE;
-    any = AnyType.INSTANCE;
-    never = NeverType.INSTANCE;
-    void = VoidType.INSTANCE;
-    function = FunctionType.INSTANCE;
+const INTERNAL_CONSTRUCTOR_KEY = Symbol();
+export class TypeSentry {
+    constructor(key) { }
+    boolean = BooleanModel.INSTANCE;
+    number = NumberModel.INSTANCE;
+    bigint = BigIntModel.INSTANCE;
+    string = StringModel.INSTANCE;
+    null = NullModel.INSTANCE;
+    undefined = UndefinedModel.INSTANCE;
+    any = AnyModel.INSTANCE;
+    never = NeverModel.INSTANCE;
+    void = VoidModel.INSTANCE;
+    function = FunctionModel.INSTANCE;
+    int = IntModel.INSTANCE;
     objectOf(object) {
-        return ObjectType.newInstance(object);
+        return ObjectModel.newInstance(object);
     }
     arrayOf(type) {
-        return new ArrayType(type);
+        return new ArrayModel(type);
     }
     mapOf(keyType, valueType) {
-        return new MapType(keyType, valueType);
+        return new MapModel(keyType, valueType);
     }
     setOf(valueType) {
-        return new SetType(valueType);
+        return new SetModel(valueType);
     }
     unionOf(...types) {
-        return UnionType.newInstance(...types);
+        return UnionModel.newInstance(...types);
     }
     intersectionOf(...types) {
-        return IntersectionType.newInstance(...types);
+        return IntersectionModel.newInstance(...types);
     }
     optionalOf(type) {
-        return OptionalType.newInstance(type);
+        return OptionalModel.newInstance(type);
+    }
+    nullableOf(type) {
+        return NullableModel.newInstance(type);
     }
     classOf(constructor) {
-        return ClassType.newInstance(constructor);
+        return ClassModel.newInstance(constructor);
     }
-    static INSTANCE = new this();
+    tupleOf(...elements) {
+        return TupleModel.newInstance(...elements);
+    }
+    literalOf(literal) {
+        return LiteralModel.newInstance(literal);
+    }
 }
-export const sentry = TypeSentry.INSTANCE;
+export const sentry = (class extends TypeSentry {
+    static INSTANCE = new this(INTERNAL_CONSTRUCTOR_KEY);
+}).INSTANCE;

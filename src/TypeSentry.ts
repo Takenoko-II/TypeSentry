@@ -182,7 +182,6 @@ class ObjectModel<T> extends TypeModel<T> {
         if (x === null) return false;
 
         for (const [key, type] of Object.entries(this.object as Record<string | number | symbol, TypeModel<unknown>>)) {
-
             const value: unknown = (x as Record<string | number | symbol, unknown>)[key];
             if (!type.test(value)) return false;
         }
@@ -405,6 +404,53 @@ class ClassModel<T> extends TypeModel<T> {
     }
 }
 
+type TypeModelArrayToTuple<T extends TypeModel<unknown>[]> = { [K in keyof T]: T[K] extends TypeModel<infer U> ? U : never }
+
+class TupleModel<T extends TypeModel<unknown>[]> extends TypeModel<TypeModelArrayToTuple<T>> {
+    private readonly tuple: T;
+
+    private constructor(tuple: T) {
+        super();
+        this.tuple = tuple;
+    }
+
+    public override test(x: unknown): x is TypeModelArrayToTuple<T> {
+        if (!Array.isArray(x)) return false;
+        else if (x.length !== this.tuple.length) return false;
+        
+        for (const [index, model] of this.tuple.entries()) {
+            if (!model.test(x[index])) return false;
+        }
+
+        return true;
+    }
+
+    public static newInstance<T extends TypeModel<unknown>[]>(...elements: T): TupleModel<T> {
+        return new this(elements);
+    }
+}
+
+class LiteralModel<T extends boolean | number | bigint | string | null | undefined> extends PrimitiveModel<T> {
+    private readonly value: T;
+
+    public constructor(value: T) {
+        super();
+        this.value = value;
+    }
+
+    public override test(x: unknown): x is T {
+        return x === this.value;
+    }
+
+    public getLiteralValue(): T {
+        return this.value;
+    }
+
+    public static newInstance<U extends boolean | number | bigint | string | null | undefined>(string: U): LiteralModel<U> {
+        return new this(string);
+    }
+}
+
 class TypeSentryError extends TypeError {
     public constructor(message: string) {
         super(message);
@@ -472,6 +518,14 @@ export class TypeSentry {
 
     public classOf<U extends Function>(constructor: U): ClassModel<U["prototype"]> {
         return ClassModel.newInstance(constructor);
+    }
+
+    public tupleOf<U extends TypeModel<unknown>[]>(...elements: U): TupleModel<U> {
+        return TupleModel.newInstance(...elements);
+    }
+
+    public literalOf<U extends boolean | number | bigint | string | null | undefined>(literal: U) {
+        return LiteralModel.newInstance(literal);
     }
 }
 
