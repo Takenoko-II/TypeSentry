@@ -111,6 +111,11 @@ sentry.bigint // bigint
 sentry.function // function, 実行時に引数と返り値の型チェックができないのでこれ以上の機能はなし
 ```
 
+#### `symbol`
+```ts
+sentry.symbol // symbol
+```
+
 #### `null`
 ```ts
 sentry.null // null
@@ -138,8 +143,8 @@ sentry.never // never, 型チェックでは常にfalseを返す
 
 #### `objectOf()`
 ```ts
-sentry.objectOf({ [string]: TypeModel<any> }) // object(連想配列), nullは含まない, 引数は{ キー文字列1: 値の型1, キー文字列2: 値の型2, ... }の形式
-sentry.objectOf({ [string]: TypeModel<any> }).exact() // object(連想配列), 実行時に被チェックオブジェクトが余計なキーを含んでいることを認めない
+sentry.objectOf({ [string | number | symbol]: TypeModel<any> }) // object(連想配列), nullは含まない, 引数は{ キー文字列1: 値の型1, キー文字列2: 値の型2, ... }の形式
+sentry.objectOf({ [string | number | symbol]: TypeModel<any> }).exact() // object(連想配列), 実行時に被チェックオブジェクトが余計なキーを含んでいることを認めない
 ```
 
 #### `arrayOf()`
@@ -185,7 +190,7 @@ sentry.nullableOf(TypeModel<any>) // nullable型, nullとのユニオン型の�
 
 #### `literalOf()`
 ```ts
-sentry.literalOf(U extends string | number | boolean | bigint | null | undefined) // literal型, リテラル値を型として扱うための関数, 引数は型にしたいリテラル
+sentry.literalOf(U extends string | number | boolean | bigint | symbol) // literal型, リテラル値を型として扱うための関数, 引数は型にしたいリテラル
 ```
 
 #### `classOf()`
