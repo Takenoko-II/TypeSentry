@@ -19,7 +19,8 @@ class PrimitiveModel extends TypeModel {
             || sentry.bigint.test(x)
             || sentry.string.test(x)
             || sentry.null.test(x)
-            || sentry.undefined.test(x);
+            || sentry.undefined.test(x)
+            || sentry.symbol.test(x);
     }
 }
 class BooleanModel extends PrimitiveModel {
@@ -190,6 +191,15 @@ class FunctionModel extends TypeModel {
     }
     test(x) {
         return typeof x === "function";
+    }
+    static INSTANCE = new this();
+}
+class SymbolModel extends TypeModel {
+    constructor() {
+        super();
+    }
+    test(x) {
+        return typeof x === "symbol";
     }
     static INSTANCE = new this();
 }
@@ -366,6 +376,7 @@ export class TypeSentry {
     never = NeverModel.INSTANCE;
     void = VoidModel.INSTANCE;
     function = FunctionModel.INSTANCE;
+    symbol = SymbolModel.INSTANCE;
     int = IntModel.INSTANCE;
     objectOf(object) {
         return ObjectModel.newInstance(object);

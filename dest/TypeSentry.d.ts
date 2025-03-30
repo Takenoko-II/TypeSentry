@@ -3,7 +3,7 @@ export declare abstract class TypeModel<T> {
     abstract test(x: unknown): x is T;
     cast(x: unknown): T;
 }
-declare abstract class PrimitiveModel<T extends boolean | number | bigint | string | null | undefined> extends TypeModel<T> {
+declare abstract class PrimitiveModel<T extends boolean | number | bigint | string | symbol | null | undefined> extends TypeModel<T> {
     protected constructor();
     test(x: unknown): x is T;
 }
@@ -78,6 +78,11 @@ declare class FunctionModel extends TypeModel<Function> {
     test(x: unknown): x is Function;
     static readonly INSTANCE: FunctionModel;
 }
+declare class SymbolModel extends TypeModel<symbol> {
+    private constructor();
+    test(x: unknown): x is symbol;
+    static readonly INSTANCE: SymbolModel;
+}
 type ExtractTypes<U extends TypeModel<unknown>[]> = U[number] extends TypeModel<infer V> ? V : never;
 declare class UnionModel<T> extends TypeModel<T> {
     private readonly types;
@@ -136,12 +141,12 @@ declare class TupleModel<T extends TypeModel<unknown>[]> extends TypeModel<TypeM
     test(x: unknown): x is TypeModelArrayToTuple<T>;
     static newInstance<T extends TypeModel<unknown>[]>(...elements: T): TupleModel<T>;
 }
-declare class LiteralModel<T extends boolean | number | bigint | string | null | undefined> extends PrimitiveModel<T> {
+declare class LiteralModel<T extends boolean | number | bigint | string | symbol> extends PrimitiveModel<T> {
     private readonly value;
     constructor(value: T);
     test(x: unknown): x is T;
     getLiteralValue(): T;
-    static newInstance<U extends boolean | number | bigint | string | null | undefined>(string: U): LiteralModel<U>;
+    static newInstance<U extends boolean | number | bigint | string | symbol>(string: U): LiteralModel<U>;
 }
 declare const INTERNAL_CONSTRUCTOR_KEY: unique symbol;
 export declare class TypeSentry {
@@ -156,6 +161,7 @@ export declare class TypeSentry {
     readonly never: NeverModel;
     readonly void: VoidModel;
     readonly function: FunctionModel;
+    readonly symbol: SymbolModel;
     readonly int: IntModel;
     objectOf<U extends Record<string | number | symbol, TypeModel<unknown>>>(object: U): ObjectModel<ExtractTypeInObjectValue<U>>;
     arrayOf<U>(type: TypeModel<U>): ArrayModel<U>;
@@ -167,7 +173,7 @@ export declare class TypeSentry {
     nullableOf<U>(type: TypeModel<U>): NullableModel<U>;
     classOf<U extends Function>(constructor: U): ClassModel<U["prototype"]>;
     tupleOf<U extends TypeModel<unknown>[]>(...elements: U): TupleModel<U>;
-    literalOf<U extends boolean | number | bigint | string | null | undefined>(literal: U): LiteralModel<U>;
+    literalOf<U extends boolean | number | bigint | string | symbol>(literal: U): LiteralModel<U>;
 }
 export declare const sentry: TypeSentry;
 export {};
