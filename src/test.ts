@@ -16,8 +16,6 @@ const fooModel = sentry.objectOf({
     }).exact()
 }).exact();
 
-let x: unknown;
+console.log(fooModel.toString());
 
-const xxx = fooModel.cast(x);
-
-xxx.obj.uuid[0]
+// {name: string, vec: {x: number, y: number, z: number}, obj: {uuid: [number, number, number, number], type: "BANANA" | "NOT_BANANA"}}

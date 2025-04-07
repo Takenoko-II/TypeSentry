@@ -11,27 +11,23 @@ export abstract class TypeModel<T> {
             throw new TypeSentryError("値のキャストに失敗しました: 期待された型に一致しません");
         }
     }
+
+    public abstract toString(): string;
 }
 
 abstract class PrimitiveModel<T extends boolean | number | bigint | string | symbol | null | undefined> extends TypeModel<T> {
     protected constructor() {
         super();
     }
-
-    public override test(x: unknown): x is T {
-        return sentry.boolean.test(x)
-            || sentry.number.test(x)
-            || sentry.bigint.test(x)
-            || sentry.string.test(x)
-            || sentry.null.test(x)
-            || sentry.undefined.test(x)
-            || sentry.symbol.test(x);
-    }
 }
 
 class BooleanModel extends PrimitiveModel<boolean> {
     public override test(x: unknown): x is boolean {
         return typeof x === "boolean";
+    }
+
+    public override toString(): string {
+        return "boolean";
     }
 
     public static readonly INSTANCE: BooleanModel = new this();
@@ -52,6 +48,10 @@ class NumberModel extends PrimitiveModel<number> {
         })();
     }
 
+    public override toString(): string {
+        return "number";
+    }
+
     public static readonly INSTANCE: NumberModel = new this();
 }
 
@@ -70,12 +70,20 @@ class IntModel extends NumberModel {
         })();
     }
 
+    public override toString(): string {
+        return "number(int)"
+    }
+
     public static readonly INSTANCE: IntModel = new this();
 }
 
 class BigIntModel extends PrimitiveModel<bigint> {
     public override test(x: unknown): x is bigint {
         return typeof x === "bigint";
+    }
+
+    public override toString(): string {
+        return "bigint"
     }
 
     public static readonly INSTANCE: BigIntModel = new this();
@@ -85,7 +93,7 @@ interface LengthRange {
     readonly min?: number;
 
     readonly max?: number;
-};
+}
 
 class StringModel extends PrimitiveModel<string> {
     public override test(x: unknown): x is string {
@@ -119,6 +127,10 @@ class StringModel extends PrimitiveModel<string> {
         })();
     }
 
+    public override toString(): string {
+        return "string";
+    }
+
     public static readonly INSTANCE: StringModel = new this();
 }
 
@@ -127,12 +139,20 @@ class NullModel extends PrimitiveModel<null> {
         return x === null;
     }
 
+    public override toString(): string {
+        return "null";
+    }
+
     public static readonly INSTANCE: NullModel = new this();
 }
 
 class UndefinedModel extends PrimitiveModel<undefined> {
     public override test(x: unknown): x is undefined {
         return x === undefined;
+    }
+
+    public override toString(): string {
+        return "undefined";
     }
 
     public static readonly INSTANCE: UndefinedModel = new this();
@@ -147,6 +167,10 @@ class AnyModel extends TypeModel<any> {
         return true;
     }
 
+    public override toString(): string {
+        return "any";
+    }
+
     public static readonly INSTANCE: AnyModel = new this();
 }
 
@@ -155,12 +179,20 @@ class NeverModel extends TypeModel<never> {
         return false;
     }
 
+    public override toString(): string {
+        return "never";
+    }
+
     public static readonly INSTANCE: NeverModel = new this();
 }
 
 class VoidModel extends TypeModel<void> {
     public test(x: unknown): x is void {
         return x === undefined;
+    }
+
+    public override toString(): string {
+        return "void";
     }
 
     public static readonly INSTANCE: VoidModel = new this();
@@ -203,6 +235,36 @@ class ObjectModel<T> extends TypeModel<T> {
         })(this.object);
     }
 
+    public override toString(): string {
+        let string = "{";
+
+        let first = true;
+        for (const [key, model] of Object.entries(this.object as Record<string | number | symbol, TypeModel<unknown>>)) {
+            if (!first) {
+                string += ", ";
+            }
+
+            let k: string = key;
+
+            if (key.includes(":")) {
+                k = "\"" + k + "\"";
+            }
+            else if (key.includes("\"")) {
+                k = k.replace(/"/g, "\\\"");
+            }
+
+            string += k;
+            string += ": ";
+            string += model.toString();
+
+            first = false;
+        }
+
+        string += "}";
+
+        return string;
+    }
+
     public static newInstance<U extends Record<string | number | symbol, TypeModel<unknown>>>(object: U): ObjectModel<ExtractTypeInObjectValue<U>> {
         return new this(object as ExtractTypeInObjectValue<U>);
     }
@@ -241,6 +303,10 @@ class ArrayModel<T> extends TypeModel<T[]> {
     public getModelOfElement(): TypeModel<T> {
         return this.type;
     }
+
+    public override toString(): string {
+        return this.type.toString() + "[]";
+    }
 }
 
 class FunctionModel extends TypeModel<Function> {
@@ -250,6 +316,10 @@ class FunctionModel extends TypeModel<Function> {
 
     public test(x: unknown): x is Function {
         return typeof x === "function";
+    }
+
+    public override toString(): string {
+        return "function";
     }
 
     public static readonly INSTANCE: FunctionModel = new this();
@@ -262,6 +332,10 @@ class SymbolModel extends TypeModel<symbol> {
 
     public test(x: unknown): x is symbol {
         return typeof x === "symbol";
+    }
+
+    public override toString(): string {
+        return "symbol";
     }
 
     public static readonly INSTANCE: SymbolModel = new this();
@@ -279,6 +353,10 @@ class UnionModel<T> extends TypeModel<T> {
 
     public override test(x: unknown): x is T {
         return this.types.some(type => type.test(x));
+    }
+
+    public override toString(): string {
+        return this.types.map(type => type.toString()).join(" | ");
     }
 
     public static newInstance<U extends TypeModel<unknown>[]>(...types: U): UnionModel<ExtractTypes<U>> {
@@ -300,6 +378,10 @@ class IntersectionModel<T> extends TypeModel<T> {
 
     public override test(x: unknown): x is T {
         return this.types.some(type => type.test(x));
+    }
+
+    public override toString(): string {
+        return this.types.map(type => type.toString()).join(" & ");
     }
 
     public static newInstance<U extends TypeModel<unknown>[]>(...types: U): IntersectionModel<ExtractIntersectTypes<U>> {
@@ -324,6 +406,10 @@ class OptionalModel<T> extends TypeModel<T | undefined> {
         return this.type;
     }
 
+    public override toString(): string {
+        return this.type.toString() + " | undefined";
+    }
+
     public static newInstance<U>(type: TypeModel<U>): OptionalModel<U> {
         return new this(type);
     }
@@ -344,6 +430,10 @@ class NullableModel<T> extends TypeModel<T | null> {
 
     public unwrap(): TypeModel<T> {
         return this.type;
+    }
+
+    public override toString(): string {
+        return this.type.toString() + " | null";
     }
 
     public static newInstance<U>(type: TypeModel<U>): NullableModel<U> {
@@ -379,6 +469,10 @@ class MapModel<K, V> extends TypeModel<Map<K, V>> {
     public getModelOfValue(): TypeModel<V> {
         return this.valueType;
     }
+
+    public override toString(): string {
+        return "Map<" + this.keyType.toString() + ", " + this.valueType.toString() + ">";
+    }
 }
 
 class SetModel<T> extends TypeModel<Set<T>> {
@@ -401,6 +495,10 @@ class SetModel<T> extends TypeModel<Set<T>> {
     public getModelOfElement(): TypeModel<T> {
         return this.valueType;
     }
+
+    public override toString(): string {
+        return "Set<" + this.valueType.toString() + ">"
+    }
 }
 
 class ClassModel<T> extends TypeModel<T> {
@@ -414,6 +512,10 @@ class ClassModel<T> extends TypeModel<T> {
 
     public static newInstance<U extends Function>(constructor: U): ClassModel<U["prototype"]> {
         return new this(constructor);
+    }
+
+    public override toString(): string {
+        return this.constructorObject.name;
     }
 }
 
@@ -438,6 +540,25 @@ class TupleModel<T extends TypeModel<unknown>[]> extends TypeModel<TypeModelArra
         return true;
     }
 
+    public override toString(): string {
+        let string = "[";
+
+        let first = true;
+        for (const model of this.tuple.values()) {
+            if (!first) {
+                string += ", ";
+            }
+
+            string += model.toString();
+
+            first = false;
+        }
+
+        string += "]";
+
+        return string;
+    }
+
     public static newInstance<T extends TypeModel<unknown>[]>(...elements: T): TupleModel<T> {
         return new this(elements);
     }
@@ -457,6 +578,16 @@ class LiteralModel<T extends boolean | number | bigint | string | symbol> extend
 
     public getLiteralValue(): T {
         return this.value;
+    }
+
+    public override toString(): string {
+        switch (typeof this.value) {
+            case "boolean": return this.value.toString();
+            case "number": return this.value.toString();
+            case "bigint": return this.value.toString() + "n";
+            case "string": return "\"" + this.value.replace(/"/g, "\\\"") + "\"";
+            case "symbol": return "symbol(" + (this.value.description === undefined ? "" : "\"" + this.value.description + "\"") + ")";
+        }
     }
 
     public static newInstance<U extends boolean | number | bigint | string | symbol>(string: U): LiteralModel<U> {

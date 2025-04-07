@@ -13,19 +13,13 @@ class PrimitiveModel extends TypeModel {
     constructor() {
         super();
     }
-    test(x) {
-        return sentry.boolean.test(x)
-            || sentry.number.test(x)
-            || sentry.bigint.test(x)
-            || sentry.string.test(x)
-            || sentry.null.test(x)
-            || sentry.undefined.test(x)
-            || sentry.symbol.test(x);
-    }
 }
 class BooleanModel extends PrimitiveModel {
     test(x) {
         return typeof x === "boolean";
+    }
+    toString() {
+        return "boolean";
     }
     static INSTANCE = new this();
 }
@@ -41,6 +35,9 @@ class NumberModel extends PrimitiveModel {
             }
         })();
     }
+    toString() {
+        return "number";
+    }
     static INSTANCE = new this();
 }
 class IntModel extends NumberModel {
@@ -55,15 +52,20 @@ class IntModel extends NumberModel {
             }
         })();
     }
+    toString() {
+        return "number(int)";
+    }
     static INSTANCE = new this();
 }
 class BigIntModel extends PrimitiveModel {
     test(x) {
         return typeof x === "bigint";
     }
+    toString() {
+        return "bigint";
+    }
     static INSTANCE = new this();
 }
-;
 class StringModel extends PrimitiveModel {
     test(x) {
         return typeof x === "string";
@@ -89,17 +91,26 @@ class StringModel extends PrimitiveModel {
             }
         })();
     }
+    toString() {
+        return "string";
+    }
     static INSTANCE = new this();
 }
 class NullModel extends PrimitiveModel {
     test(x) {
         return x === null;
     }
+    toString() {
+        return "null";
+    }
     static INSTANCE = new this();
 }
 class UndefinedModel extends PrimitiveModel {
     test(x) {
         return x === undefined;
+    }
+    toString() {
+        return "undefined";
     }
     static INSTANCE = new this();
 }
@@ -110,17 +121,26 @@ class AnyModel extends TypeModel {
     test(x) {
         return true;
     }
+    toString() {
+        return "any";
+    }
     static INSTANCE = new this();
 }
 class NeverModel extends TypeModel {
     test(x) {
         return false;
     }
+    toString() {
+        return "never";
+    }
     static INSTANCE = new this();
 }
 class VoidModel extends TypeModel {
     test(x) {
         return x === undefined;
+    }
+    toString() {
+        return "void";
     }
     static INSTANCE = new this();
 }
@@ -154,6 +174,28 @@ class ObjectModel extends TypeModel {
             }
         })(this.object);
     }
+    toString() {
+        let string = "{";
+        let first = true;
+        for (const [key, model] of Object.entries(this.object)) {
+            if (!first) {
+                string += ", ";
+            }
+            let k = key;
+            if (key.includes(":")) {
+                k = "\"" + k + "\"";
+            }
+            else if (key.includes("\"")) {
+                k = k.replace(/"/g, "\\\"");
+            }
+            string += k;
+            string += ": ";
+            string += model.toString();
+            first = false;
+        }
+        string += "}";
+        return string;
+    }
     static newInstance(object) {
         return new this(object);
     }
@@ -184,6 +226,9 @@ class ArrayModel extends TypeModel {
     getModelOfElement() {
         return this.type;
     }
+    toString() {
+        return this.type.toString() + "[]";
+    }
 }
 class FunctionModel extends TypeModel {
     constructor() {
@@ -191,6 +236,9 @@ class FunctionModel extends TypeModel {
     }
     test(x) {
         return typeof x === "function";
+    }
+    toString() {
+        return "function";
     }
     static INSTANCE = new this();
 }
@@ -200,6 +248,9 @@ class SymbolModel extends TypeModel {
     }
     test(x) {
         return typeof x === "symbol";
+    }
+    toString() {
+        return "symbol";
     }
     static INSTANCE = new this();
 }
@@ -211,6 +262,9 @@ class UnionModel extends TypeModel {
     }
     test(x) {
         return this.types.some(type => type.test(x));
+    }
+    toString() {
+        return this.types.map(type => type.toString()).join(" | ");
     }
     static newInstance(...types) {
         return new this(...types);
@@ -224,6 +278,9 @@ class IntersectionModel extends TypeModel {
     }
     test(x) {
         return this.types.some(type => type.test(x));
+    }
+    toString() {
+        return this.types.map(type => type.toString()).join(" & ");
     }
     static newInstance(...types) {
         return new this(...types);
@@ -242,6 +299,9 @@ class OptionalModel extends TypeModel {
     unwrap() {
         return this.type;
     }
+    toString() {
+        return this.type.toString() + " | undefined";
+    }
     static newInstance(type) {
         return new this(type);
     }
@@ -258,6 +318,9 @@ class NullableModel extends TypeModel {
     }
     unwrap() {
         return this.type;
+    }
+    toString() {
+        return this.type.toString() + " | null";
     }
     static newInstance(type) {
         return new this(type);
@@ -288,6 +351,9 @@ class MapModel extends TypeModel {
     getModelOfValue() {
         return this.valueType;
     }
+    toString() {
+        return "Map<" + this.keyType.toString() + ", " + this.valueType.toString() + ">";
+    }
 }
 class SetModel extends TypeModel {
     valueType;
@@ -307,6 +373,9 @@ class SetModel extends TypeModel {
     getModelOfElement() {
         return this.valueType;
     }
+    toString() {
+        return "Set<" + this.valueType.toString() + ">";
+    }
 }
 class ClassModel extends TypeModel {
     constructorObject;
@@ -319,6 +388,9 @@ class ClassModel extends TypeModel {
     }
     static newInstance(constructor) {
         return new this(constructor);
+    }
+    toString() {
+        return this.constructorObject.name;
     }
 }
 class TupleModel extends TypeModel {
@@ -338,6 +410,19 @@ class TupleModel extends TypeModel {
         }
         return true;
     }
+    toString() {
+        let string = "[";
+        let first = true;
+        for (const model of this.tuple.values()) {
+            if (!first) {
+                string += ", ";
+            }
+            string += model.toString();
+            first = false;
+        }
+        string += "]";
+        return string;
+    }
     static newInstance(...elements) {
         return new this(elements);
     }
@@ -353,6 +438,15 @@ class LiteralModel extends PrimitiveModel {
     }
     getLiteralValue() {
         return this.value;
+    }
+    toString() {
+        switch (typeof this.value) {
+            case "boolean": return this.value.toString();
+            case "number": return this.value.toString();
+            case "bigint": return this.value.toString() + "n";
+            case "string": return "\"" + this.value.replace(/"/g, "\\\"") + "\"";
+            case "symbol": return "symbol(" + (this.value.description === undefined ? "" : "\"" + this.value.description + "\"") + ")";
+        }
     }
     static newInstance(string) {
         return new this(string);
