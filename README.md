@@ -89,8 +89,8 @@ sentry.boolean // boolean
 ```ts
 sentry.number // number
 sentry.number.nonNaN() // number, 実行時にNaNチェック付き
-sentry.int // number, 実行時に整数チェック付き
-sentry.int.nonNaN() // number, 実行時にNaNチェック・整数チェック付き
+sentry.number.int() // number, 実行時に整数チェック付き
+sentry.number.int().nonNaN() // number, 実行時にNaNチェック・整数チェック付き
 ```
 
 #### `string`

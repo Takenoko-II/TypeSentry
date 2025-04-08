@@ -1,4 +1,4 @@
-import { sentry } from "./TypeSentry.js";
+import { sentry } from "./TypeSentry";
 const fooModel = sentry.objectOf({
     name: sentry.string,
     vec: sentry.objectOf({
@@ -12,3 +12,4 @@ const fooModel = sentry.objectOf({
     }).exact()
 }).exact();
 console.log(fooModel.toString());
+// {name: string, vec: {x: number, y: number, z: number}, obj: {uuid: [number, number, number, number], type: "BANANA" | "NOT_BANANA"}}
