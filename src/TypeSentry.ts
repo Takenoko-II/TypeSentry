@@ -38,7 +38,6 @@ abstract class PrimitiveModel<T extends boolean | number | bigint | string | sym
     }
 }
 
-
 class BooleanModel extends PrimitiveModel<boolean> {
     public override test(x: unknown): x is boolean {
         return typeof x === "boolean";

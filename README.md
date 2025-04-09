@@ -59,10 +59,15 @@ const vector2Model: TypeModel<Vector2> = sentry.objectOf({
 // 型注釈なしでも型変換は可能
 const itemModel = sentry.objectOf({
     id: sentry.string,
-    count: sentry.unionOf(sentry.int.nonNaN(), sentry.bigint),
+    count: sentry.unionOf(sentry.number.int().nonNaN(), sentry.bigint),
     components: sentry.objectOf({
         attributes: sentry.setOf(sentry.string),
-        uuid: sentry.tupleOf(sentry.int.nonNaN(), sentry.int.nonNaN(), sentry.int.nonNaN(), sentry.int.nonNaN())
+        uuid: sentry.tupleOf(
+            sentry.number.int().nonNaN(),
+            sentry.number.int().nonNaN(),
+            sentry.number.int().nonNaN(),
+            sentry.number.int().nonNaN()
+        )
     })
 });
 
@@ -198,6 +203,16 @@ sentry.literalOf(U extends string | number | boolean | bigint | symbol) // liter
 sentry.classOf(U extends Function) // 任意のクラス型, 引数はクラスオブジェクト(Function)
 ```
 
+#### `int`
+```ts
+sentry.int // number, 実行時に整数チェック付き
+```
+
+> [!WARNING]
+> `int`は非推奨です (代替: `number.int()`)
+
+
+
 ### TypeModelの継承
 
 型はクラスの継承という方法でも一応作れはする、冗長だけど
@@ -238,10 +253,20 @@ if (Vector3Model.INSTANCE.test({ x: 0, y: 1, z: -2 })) {
 > このライブラリの弱点としては循環定義ができないこと
 > ```ts
 > interface Foo {
->     foo: Foo
+>     foo: Foo;
 > }
 > ```
-> みたいなのは定義できない
+> みたいなのとか
+> ```ts
+> interface A {
+>     b: B;
+> }
+>
+> interface B {
+>     a: A;
+> }
+> ```
+みたいなのは定義できない
 
 ## License
 [MIT LICENSE](/LICENSE)
