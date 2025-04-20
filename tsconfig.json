@@ -1,15 +1,24 @@
 {
     "compilerOptions": {
-        "module": "ES2022",
-        "target": "ES2022",
         "allowJs": true,
         "checkJs": true,
-        "esModuleInterop": true,
-        "strictNullChecks": true,
+        "module": "ES2022",
+        "target": "ES2022",
         "moduleResolution": "node",
+        "esModuleInterop": true,
+        "strict": true,
+        "noImplicitOverride": true,
+        "exactOptionalPropertyTypes": true,
+        "allowUnusedLabels": false,
+        "allowUnreachableCode": false,
+        "noImplicitReturns": true,
+        "noUnusedParameters": true,
+        "noUnusedLocals": true,
+        // "noFallthroughCasesInSwitch": true, 流石に使いたい
+        // "noPropertyAccessFromIndexSignature": true, これやるとRecordがReflect.get()でしか使えなくなる件
+        // "noUncheckedIndexedAccess": true, lengthの参照によるチェックをチェックとして判定してくれないから冗長
         "declaration": true,
         "rootDir": "src",
         "outDir": "dest",
-        "strict": true
     }
 }

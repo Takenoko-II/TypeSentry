@@ -146,51 +146,56 @@ sentry.any // any, 型チェックでは常にtrueを返す
 sentry.never // never, 型チェックでは常にfalseを返す
 ```
 
+#### `unknown`
+```ts
+sentry.unknwon // unknown
+```
+
 #### `objectOf()`
 ```ts
-sentry.objectOf({ [string | number | symbol]: TypeModel<any> }) // object(連想配列), nullは含まない, 引数は{ キー文字列1: 値の型1, キー文字列2: 値の型2, ... }の形式
-sentry.objectOf({ [string | number | symbol]: TypeModel<any> }).exact() // object(連想配列), 実行時に被チェックオブジェクトが余計なキーを含んでいることを認めない
+sentry.objectOf(Record<string | number | symbol, TypeModel<unknown>>) // object(連想配列), nullは含まない, 引数は{ キー文字列1: 値の型1, キー文字列2: 値の型2, ... }の形式
+sentry.objectOf(Record<string | number | symbol, TypeModel<unknown>>).exact() // object(連想配列), 実行時に被チェックオブジェクトが余計なキーを含んでいることを認めない
 ```
 
 #### `arrayOf()`
 ```ts
-sentry.arrayOf(TypeModel<any>) // array(配列), 引数は要素の型
-sentry.arrayOf(TypeModel<any>).withLength({ min: number; max: number }) // array(配列), 実行時に配列長チェック付き
+sentry.arrayOf(TypeModel<unknown>) // array(配列), 引数は要素の型
+sentry.arrayOf(TypeModel<unknown>).withLength({ min: number; max: number }) // array(配列), 実行時に配列長チェック付き
 ```
 
 #### `tupleOf()`
 ```ts
-sentry.tupleOf(...TypeModel<any>[]) // tuple(タプル), 引数は要素の型を左から順に並べる
+sentry.tupleOf(...TypeModel<unknown>[]) // tuple(タプル), 引数は要素の型を左から順に並べる
 ```
 
 #### `mapOf()`
 ```ts
-sentry.mapOf(TypeModel<any>, TypeModel<any>) // Map, 第一引数がキーで第二引数が値
+sentry.mapOf(TypeModel<unknown>, TypeModel<unknown>) // Map, 第一引数がキーで第二引数が値
 ```
 
 #### `setOf()`
 ```ts
-sentry.setOf(TypeModel<any>) // Set, 引数は要素の型
+sentry.setOf(TypeModel<unknown>) // Set, 引数は要素の型
 ```
 
 #### `unionOf()`
 ```ts
-sentry.unionOf(...TypeModel<any>) // union(ユニオン型), 引数は含める型を羅列
+sentry.unionOf(...TypeModel<unknown>) // union(ユニオン型), 引数は含める型を羅列
 ```
 
 #### `intersectionOf()`
 ```ts
-sentry.intersectionOf(...TypeModel<any>) // intersection(交差型), 引数は含める型を羅列
+sentry.intersectionOf(...TypeModel<unknown>) // intersection(交差型), 引数は含める型を羅列
 ```
 
 #### `optionalOf()`
 ```ts
-sentry.optionalOf(TypeModel<any>) // optional型, undefinedとのユニオン型のエイリアス, 引数はundefinedとのユニオンにする型
+sentry.optionalOf(TypeModel<unknown>) // optional型, undefinedとのユニオン型のエイリアス, 引数はundefinedとのユニオンにする型
 ```
 
 #### `nullableOf()`
 ```ts
-sentry.nullableOf(TypeModel<any>) // nullable型, nullとのユニオン型のエイリアス, 引数はnullとのユニオンにする型
+sentry.nullableOf(TypeModel<unknown>) // nullable型, nullとのユニオン型のエイリアス, 引数はnullとのユニオンにする型
 ```
 
 #### `literalOf()`

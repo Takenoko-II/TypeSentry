@@ -94,14 +94,19 @@ declare class UndefinedModel extends PrimitiveModel<undefined> {
 }
 declare class AnyModel extends TypeModel<any> {
     private constructor();
-    test(x: unknown): x is any;
+    test(_: unknown): _ is any;
     toString(): string;
     static readonly INSTANCE: AnyModel;
 }
 declare class NeverModel extends TypeModel<never> {
-    test(x: unknown): x is never;
+    test(_: unknown): _ is never;
     toString(): string;
     static readonly INSTANCE: NeverModel;
+}
+declare class UnknownModel extends TypeModel<unknown> {
+    test(_: unknown): _ is unknown;
+    toString(): string;
+    static readonly INSTANCE: UnknownModel;
 }
 declare class VoidModel extends TypeModel<void> {
     test(x: unknown): x is void;
@@ -304,6 +309,10 @@ export declare class TypeSentry {
      * 全てのサブクラス `never`
      */
     readonly never: NeverModel;
+    /**
+     * `unknown`
+     */
+    readonly unknown: UnknownModel;
     /**
      * `number`のランタイムチェック付きインスタンス
      * @deprecated `NumberModel`のインスタンスメソッドに置き換えられました

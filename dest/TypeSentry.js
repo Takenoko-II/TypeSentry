@@ -159,7 +159,7 @@ class AnyModel extends TypeModel {
     constructor() {
         super();
     }
-    test(x) {
+    test(_) {
         return true;
     }
     toString() {
@@ -168,11 +168,20 @@ class AnyModel extends TypeModel {
     static INSTANCE = new this();
 }
 class NeverModel extends TypeModel {
-    test(x) {
+    test(_) {
         return false;
     }
     toString() {
         return "never";
+    }
+    static INSTANCE = new this();
+}
+class UnknownModel extends TypeModel {
+    test(_) {
+        return true;
+    }
+    toString() {
+        return "unknown";
     }
     static INSTANCE = new this();
 }
@@ -224,7 +233,7 @@ class ObjectModel extends TypeModel {
         let first = true;
         for (const [key, model] of Object.entries(this.object)) {
             if (!first) {
-                string += ", ";
+                string += "; ";
             }
             let k = key;
             if (key.includes(":")) {
@@ -592,6 +601,10 @@ export class TypeSentry {
      * 全てのサブクラス `never`
      */
     never = NeverModel.INSTANCE;
+    /**
+     * `unknown`
+     */
+    unknown = UnknownModel.INSTANCE;
     /**
      * `number`のランタイムチェック付きインスタンス
      * @deprecated `NumberModel`のインスタンスメソッドに置き換えられました
