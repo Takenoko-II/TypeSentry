@@ -243,6 +243,23 @@ declare class TupleModel<T extends TypeModel<unknown>[]> extends TypeModel<TypeM
     toString(): string;
     static newInstance<T extends TypeModel<unknown>[]>(...elements: T): TupleModel<T>;
 }
+declare class RecordModel<K extends string | number | symbol, V> extends TypeModel<Record<K, V>> {
+    private readonly keyType;
+    private readonly valueType;
+    constructor(keyType: TypeModel<K>, valueType: TypeModel<V>);
+    test(x: unknown): x is Record<K, V>;
+    /**
+     * `Record`のキーの型を表現する`TypeModel`を返します。
+     * @returns (キー)型の`TypeModel`インスタンス
+     */
+    getModelOfKey(): TypeModel<K>;
+    /**
+     * `Record`のキーの型を表現する`TypeModel`を返します。
+     * @returns (値)型の`TypeModel`インスタンス
+     */
+    getModelOfValue(): TypeModel<V>;
+    toString(): string;
+}
 declare class LiteralModel<T extends boolean | number | bigint | string | symbol> extends PrimitiveModel<T> {
     private readonly value;
     constructor(value: T);
@@ -254,6 +271,13 @@ declare class LiteralModel<T extends boolean | number | bigint | string | symbol
     getLiteralValue(): T;
     toString(): string;
     static newInstance<U extends boolean | number | bigint | string | symbol>(string: U): LiteralModel<U>;
+}
+declare class EnumLikeModel<T extends Record<string, string | number>> extends TypeModel<T[keyof T]> {
+    private readonly enumeration;
+    constructor(enumeration: T);
+    test(x: unknown): x is T[keyof T];
+    static newInstance<U extends Record<string, string | number>>(enumeration: U): EnumLikeModel<U>;
+    toString(): string;
 }
 declare const SYMBOL_FOR_PRIVATE_CONSTRUCTOR: unique symbol;
 /**
@@ -303,6 +327,7 @@ export declare class TypeSentry {
     readonly symbol: SymbolModel;
     /**
      * 全てのスーパークラス `any`
+     * 基本的に非推奨
      */
     readonly any: AnyModel;
     /**
@@ -351,6 +376,13 @@ export declare class TypeSentry {
      */
     setOf<T>(valueType: TypeModel<T>): SetModel<T>;
     /**
+     * 型 `Record`
+     * @param keyType `Record`のキーの型を表現する`TypeModel`
+     * @param valueType `Record`の値の型を表現する`TypeModel`
+     * @returns `Record`型を表現する`TypeModel`
+     */
+    recordOf<K extends string | number | symbol, V>(keyType: TypeModel<K>, valueType: TypeModel<V>): RecordModel<K, V>;
+    /**
      * 合併型
      * @param types 合併型の各要素の型を表現する`TypeModel`
      * @returns 合併型を表現する`TypeModel`
@@ -386,6 +418,13 @@ export declare class TypeSentry {
      * @returns 任意のリテラル型の`TypeModel`
      */
     literalOf<U extends boolean | number | bigint | string | symbol>(literal: U): LiteralModel<U>;
+    /**
+     * 任意の列挙型を表現する型
+     * @param enumeration 列挙型
+     * @returns 任意の列挙型の`TypeModel`
+     * @experimental
+     */
+    enumLikeOf<U extends Record<string, string | number>>(enumeration: U): EnumLikeModel<U>;
 }
 /**
  * `TypeSentry`のインスタンス

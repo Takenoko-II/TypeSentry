@@ -53,3 +53,10 @@ const entityModel = sentry.objectOf({
 });
 
 console.log(entityModel.toString()); // "{id: number; uuid: [number, number, number, number]; type: {id: string}; position: {x: number; y: number; z: number}; rotation: {yaw: number; pitch: number}; bounding_box: {width: number; height: number}; velocity: {x: number; y: number; z: number}; dimension: {id: "minecraft:overworld" | "minecraft:the_nether" | "minecraft:the_end"; heightRange: {min: number; max: number}}; command_tags: string[]; custom_name: string | undefined; fire_ticks: number; air: number}"
+
+enum Fruit {
+    APPLE="apple",
+    ORANGE="orange"
+}
+
+console.log(sentry.enumLikeOf(Fruit).test(Fruit.ORANGE));

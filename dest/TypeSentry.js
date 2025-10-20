@@ -510,6 +510,43 @@ class TupleModel extends TypeModel {
         return new this(elements);
     }
 }
+class RecordModel extends TypeModel {
+    keyType;
+    valueType;
+    constructor(keyType, valueType) {
+        super();
+        this.keyType = keyType;
+        this.valueType = valueType;
+    }
+    test(x) {
+        if (typeof x !== "object" || x === null)
+            return false;
+        for (const [key, value] of Object.entries(x)) {
+            if (!this.keyType.test(key))
+                return false;
+            if (!this.valueType.test(value))
+                return false;
+        }
+        return true;
+    }
+    /**
+     * `Record`のキーの型を表現する`TypeModel`を返します。
+     * @returns (キー)型の`TypeModel`インスタンス
+     */
+    getModelOfKey() {
+        return this.keyType;
+    }
+    /**
+     * `Record`のキーの型を表現する`TypeModel`を返します。
+     * @returns (値)型の`TypeModel`インスタンス
+     */
+    getModelOfValue() {
+        return this.valueType;
+    }
+    toString() {
+        return "Record<" + this.keyType.toString() + ", " + this.valueType.toString() + ">";
+    }
+}
 class LiteralModel extends PrimitiveModel {
     value;
     constructor(value) {
@@ -537,6 +574,33 @@ class LiteralModel extends PrimitiveModel {
     }
     static newInstance(string) {
         return new this(string);
+    }
+}
+class EnumLikeModel extends TypeModel {
+    enumeration;
+    constructor(enumeration) {
+        super();
+        this.enumeration = enumeration;
+    }
+    test(x) {
+        if (!sentry.unionOf(sentry.string, sentry.number).test(x))
+            return false;
+        return Object.values(this.enumeration).includes(x);
+    }
+    static newInstance(enumeration) {
+        return new this(enumeration);
+    }
+    toString() {
+        let s = "Enum { ";
+        let first = true;
+        for (const [k, v] of Object.entries(this.enumeration)) {
+            if (!first) {
+                s += ', ';
+            }
+            s += k + '=' + v;
+            first = false;
+        }
+        return s + " }";
     }
 }
 /**
@@ -595,6 +659,7 @@ export class TypeSentry {
     symbol = SymbolModel.INSTANCE;
     /**
      * 全てのスーパークラス `any`
+     * 基本的に非推奨
      */
     any = AnyModel.INSTANCE;
     /**
@@ -653,6 +718,15 @@ export class TypeSentry {
         return new SetModel(valueType);
     }
     /**
+     * 型 `Record`
+     * @param keyType `Record`のキーの型を表現する`TypeModel`
+     * @param valueType `Record`の値の型を表現する`TypeModel`
+     * @returns `Record`型を表現する`TypeModel`
+     */
+    recordOf(keyType, valueType) {
+        return new RecordModel(keyType, valueType);
+    }
+    /**
      * 合併型
      * @param types 合併型の各要素の型を表現する`TypeModel`
      * @returns 合併型を表現する`TypeModel`
@@ -699,6 +773,15 @@ export class TypeSentry {
      */
     literalOf(literal) {
         return LiteralModel.newInstance(literal);
+    }
+    /**
+     * 任意の列挙型を表現する型
+     * @param enumeration 列挙型
+     * @returns 任意の列挙型の`TypeModel`
+     * @experimental
+     */
+    enumLikeOf(enumeration) {
+        return EnumLikeModel.newInstance(enumeration);
     }
 }
 /**
