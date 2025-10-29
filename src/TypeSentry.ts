@@ -790,7 +790,7 @@ class NeoOptionalModel<T> extends TypeModel<T> {
     }
 
     public override toString(): string {
-        return "NeoOptional<" + this.type + ">";
+        return this.type.toString();
     }
 
     public static newInstance<const W>(w: TypeModel<W>): NeoOptionalModel<W> {
@@ -868,7 +868,14 @@ class NeoObjectModel<T extends Record<string | number | symbol, TypeModel<unknow
             }
 
             string += k;
-            string += ": ";
+
+            if (model instanceof NeoOptionalModel) {
+                string += "?: ";
+            }
+            else {
+                string += ": ";
+            }
+
             string += model.toString();
 
             first = false;
