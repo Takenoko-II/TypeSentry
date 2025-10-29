@@ -37,9 +37,8 @@ const entityModel = sentry.objectOf({
     air: nonNaNIntModel
 });
 console.log(entityModel.toString()); // "{id: number; uuid: [number, number, number, number]; type: {id: string}; position: {x: number; y: number; z: number}; rotation: {yaw: number; pitch: number}; bounding_box: {width: number; height: number}; velocity: {x: number; y: number; z: number}; dimension: {id: "minecraft:overworld" | "minecraft:the_nether" | "minecraft:the_end"; heightRange: {min: number; max: number}}; command_tags: string[]; custom_name: string | undefined; fire_ticks: number; air: number}"
-var Fruit;
-(function (Fruit) {
-    Fruit["APPLE"] = "apple";
-    Fruit["ORANGE"] = "orange";
-})(Fruit || (Fruit = {}));
-console.log(sentry.enumLikeOf(Fruit).test(Fruit.ORANGE));
+const testModel = sentry.neoObjectOf({
+    id: sentry.string,
+    count: sentry.neoOptionalOf(sentry.number.int())
+}).exact();
+console.log(testModel.test({ id: "a", count: 1 }));

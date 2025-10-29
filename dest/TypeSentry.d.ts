@@ -279,6 +279,31 @@ declare class EnumLikeModel<T extends Record<string, string | number>> extends T
     static newInstance<U extends Record<string, string | number>>(enumeration: U): EnumLikeModel<U>;
     toString(): string;
 }
+type IsOptional<T> = T extends NeoOptionalModel<unknown> ? true : false;
+type ExtractTypeInObjectOptionableValue<T> = {
+    [K in keyof T as IsOptional<T[K]> extends true ? K : never]?: T[K] extends TypeModel<infer I> ? I : never;
+} & {
+    [K in keyof T as IsOptional<T[K]> extends true ? never : K]: T[K] extends TypeModel<infer I> ? I : never;
+};
+declare class NeoOptionalModel<T> extends TypeModel<T> {
+    private readonly type;
+    private constructor();
+    test(x: unknown): x is T;
+    toString(): string;
+    static newInstance<const W>(w: TypeModel<W>): NeoOptionalModel<W>;
+}
+declare class NeoObjectModel<T extends Record<string | number | symbol, TypeModel<unknown>>> extends TypeModel<T> {
+    private readonly object;
+    protected constructor(object: T);
+    test(x: unknown): x is T;
+    /**
+     * オブジェクトが過剰な数のキーを持たない連想配列であることを実行時の検査において追加で要求するインスタンスを新しく生成します。
+     * @returns ランタイム条件付きインスタンス
+     */
+    exact(): NeoObjectModel<T>;
+    toString(): string;
+    static newInstance<U extends Record<string | number | symbol, TypeModel<unknown>>>(object: U): NeoObjectModel<ExtractTypeInObjectOptionableValue<U>>;
+}
 declare const SYMBOL_FOR_PRIVATE_CONSTRUCTOR: unique symbol;
 /**
  * `TypeModel`のインスタンスを提供するクラス
@@ -351,6 +376,12 @@ export declare class TypeSentry {
      */
     objectOf<U extends Record<string | number | symbol, TypeModel<unknown>>>(object: U): ObjectModel<ExtractTypeInObjectValue<U>>;
     /**
+     * 第一級オブジェクト `object`
+     * @param object `{キー1: TypeModel, キー2: TypeModel, ...}`の形式で与えられる連想配列
+     * @returns 連想配列型を表現する`TypeModel`
+     */
+    neoObjectOf<U extends Record<string | number | symbol, TypeModel<unknown>>>(object: U): NeoObjectModel<ExtractTypeInObjectOptionableValue<U>>;
+    /**
      * 第一級オブジェクト `array`
      * @param type 配列の要素の型を表現する`TypeModel`
      * @returns 配列型を表現する`TypeModel`
@@ -400,6 +431,12 @@ export declare class TypeSentry {
      * @returns `optional`型を表現する`TypeModel`
      */
     optionalOf<U>(type: TypeModel<U>): OptionalModel<U>;
+    /**
+     * `undefined`との合併型のエイリアス「ではない」、真の `optional`型
+     * @param types `optional`型でラップする型の`TypeModel`
+     * @returns `optional`型を表現する`TypeModel`
+     */
+    neoOptionalOf<U>(type: TypeModel<U>): NeoOptionalModel<U>;
     /**
      * `null`との合併型のエイリアス `nullable`型
      * @param types `nulleable`型でラップする型の`TypeModel`

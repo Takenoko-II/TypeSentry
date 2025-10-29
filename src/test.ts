@@ -1,4 +1,4 @@
-import { sentry } from "./TypeSentry.js";
+import { sentry, TypeModel } from "./TypeSentry.js";
 
 const rotationModel = sentry.objectOf({
     yaw: sentry.number.nonNaN(),
@@ -54,9 +54,16 @@ const entityModel = sentry.objectOf({
 
 console.log(entityModel.toString()); // "{id: number; uuid: [number, number, number, number]; type: {id: string}; position: {x: number; y: number; z: number}; rotation: {yaw: number; pitch: number}; bounding_box: {width: number; height: number}; velocity: {x: number; y: number; z: number}; dimension: {id: "minecraft:overworld" | "minecraft:the_nether" | "minecraft:the_end"; heightRange: {min: number; max: number}}; command_tags: string[]; custom_name: string | undefined; fire_ticks: number; air: number}"
 
-enum Fruit {
-    APPLE="apple",
-    ORANGE="orange"
+
+interface Test {
+    readonly id: string;
+
+    readonly count?: number;
 }
 
-console.log(sentry.enumLikeOf(Fruit).test(Fruit.ORANGE));
+const testModel: TypeModel<Test> = sentry.neoObjectOf({
+    id: sentry.string,
+    count: sentry.neoOptionalOf(sentry.number.int())
+}).exact();
+
+console.log(testModel.test({ id: "a", count: 4 }));

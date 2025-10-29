@@ -603,6 +603,95 @@ class EnumLikeModel extends TypeModel {
         return s + " }";
     }
 }
+class NeoOptionalModel extends TypeModel {
+    type;
+    constructor(type) {
+        super();
+        this.type = type;
+    }
+    test(x) {
+        return this.type.test(x);
+    }
+    toString() {
+        return "NeoOptional<" + this.type + ">";
+    }
+    static newInstance(w) {
+        return new NeoOptionalModel(w);
+    }
+}
+class NeoObjectModel extends TypeModel {
+    object;
+    constructor(object) {
+        super();
+        this.object = object;
+    }
+    test(x) {
+        if (typeof x !== "object")
+            return false;
+        if (x === null)
+            return false;
+        for (const [key, typeModel] of Object.entries(this.object)) {
+            if (key in x) {
+                const value = x[key];
+                if (!typeModel.test(value))
+                    return false;
+            }
+            else if (this.object[key] instanceof NeoOptionalModel) {
+                continue;
+            }
+            else {
+                return false;
+            }
+        }
+        return true;
+    }
+    /**
+     * オブジェクトが過剰な数のキーを持たない連想配列であることを実行時の検査において追加で要求するインスタンスを新しく生成します。
+     * @returns ランタイム条件付きインスタンス
+     */
+    exact() {
+        const that = this;
+        return new (class extends NeoObjectModel {
+            test(x) {
+                if (that.test(x)) {
+                    for (const key of Object.keys(x)) {
+                        if (!(key in that.object)) {
+                            return false;
+                        }
+                    }
+                    return true;
+                }
+                else
+                    return false;
+            }
+        })(this.object);
+    }
+    toString() {
+        let string = "{";
+        let first = true;
+        for (const [key, model] of Object.entries(this.object)) {
+            if (!first) {
+                string += "; ";
+            }
+            let k = key;
+            if (key.includes(":")) {
+                k = "\"" + k + "\"";
+            }
+            else if (key.includes("\"")) {
+                k = k.replace(/"/g, "\\\"");
+            }
+            string += k;
+            string += ": ";
+            string += model.toString();
+            first = false;
+        }
+        string += "}";
+        return string;
+    }
+    static newInstance(object) {
+        return new this(object);
+    }
+}
 /**
  * `TypeSentry`が投げるエラー
  */
@@ -685,6 +774,14 @@ export class TypeSentry {
         return ObjectModel.newInstance(object);
     }
     /**
+     * 第一級オブジェクト `object`
+     * @param object `{キー1: TypeModel, キー2: TypeModel, ...}`の形式で与えられる連想配列
+     * @returns 連想配列型を表現する`TypeModel`
+     */
+    neoObjectOf(object) {
+        return NeoObjectModel.newInstance(object);
+    }
+    /**
      * 第一級オブジェクト `array`
      * @param type 配列の要素の型を表現する`TypeModel`
      * @returns 配列型を表現する`TypeModel`
@@ -749,6 +846,14 @@ export class TypeSentry {
      */
     optionalOf(type) {
         return OptionalModel.newInstance(type);
+    }
+    /**
+     * `undefined`との合併型のエイリアス「ではない」、真の `optional`型
+     * @param types `optional`型でラップする型の`TypeModel`
+     * @returns `optional`型を表現する`TypeModel`
+     */
+    neoOptionalOf(type) {
+        return NeoOptionalModel.newInstance(type);
     }
     /**
      * `null`との合併型のエイリアス `nullable`型
