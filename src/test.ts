@@ -61,9 +61,9 @@ interface Test {
     readonly count?: number;
 }
 
-const testModel: TypeModel<Test> = sentry.neoObjectOf({
+const testModel: TypeModel<Test> = sentry.structOf({
     id: sentry.string,
-    count: sentry.neoOptionalOf(sentry.number.int())
+    count: sentry.optionalOf(sentry.number.int())
 }).exact();
 
 console.log(testModel.test({ id: "a", count: 4 }));

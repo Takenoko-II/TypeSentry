@@ -116,6 +116,9 @@ sentry.bigint // bigint
 sentry.function // function, 実行時に引数と返り値の型チェックができないのでこれ以上の機能はなし
 ```
 
+> [!WARNING]
+> `function`は非推奨です (代替: `functionOf()`)
+
 #### `symbol`
 ```ts
 sentry.symbol // symbol
@@ -151,10 +154,29 @@ sentry.never // never, 型チェックでは常にfalseを返す
 sentry.unknwon // unknown
 ```
 
+#### `functionOf()`
+```ts
+sentry.functionOf(TypeModel<unknown>[], TypeModel<unknown>) // function(関数), 引数は([第一引数の型, 第二引数の型, ...], 戻り値の型)の形式, 実行時チェックなし
+```
+
 #### `objectOf()`
 ```ts
 sentry.objectOf(Record<string | number | symbol, TypeModel<unknown>>) // object(連想配列), nullは含まない, 引数は{ キー文字列1: 値の型1, キー文字列2: 値の型2, ... }の形式
 sentry.objectOf(Record<string | number | symbol, TypeModel<unknown>>).exact() // object(連想配列), 実行時に被チェックオブジェクトが余計なキーを含んでいることを認めない
+```
+
+> [!WARNING]
+> `objectOf()`は非推奨です (代替: `structOf()`)
+
+#### `structOf()`
+```ts
+sentry.structOf(Record<string | number | symbol, TypeModel<unknown>>) // struct(連想配列), nullは含まない, 引数は{ キー文字列1: 値の型1, キー文字列2: 値の型2, ... }の形式
+sentry.structOf(Record<string | number | symbol, TypeModel<unknown>>).exact() // struct(連想配列), 実行時に被チェックオブジェクトが未定義のキーを含んでいることを認めない
+```
+
+#### `optionalOf()`
+```ts
+sentry.optionalOf(TypeModel<unknown>) // optional型, `structOf()`の値にこれを使用することでオプショナルプロパティにすることができる, 引数はオプショナルプロパティの型
 ```
 
 #### `arrayOf()`
@@ -188,9 +210,9 @@ sentry.unionOf(...TypeModel<unknown>) // union(ユニオン型), 引数は含め
 sentry.intersectionOf(...TypeModel<unknown>) // intersection(交差型), 引数は含める型を羅列
 ```
 
-#### `optionalOf()`
+#### `undefindableOf()`
 ```ts
-sentry.optionalOf(TypeModel<unknown>) // optional型, undefinedとのユニオン型のエイリアス, 引数はundefinedとのユニオンにする型
+sentry.undefindableOf(TypeModel<unknown>) // undefindable型, undefinedとのユニオン型のエイリアス, 引数はundefinedとのユニオンにする型
 ```
 
 #### `nullableOf()`
@@ -217,7 +239,6 @@ sentry.int // number, 実行時に整数チェック付き
 > `int`は非推奨です (代替: `number.int()`)
 
 
-
 ### TypeModelの継承
 
 型はクラスの継承という方法でも一応作れはする、冗長だけど
@@ -237,7 +258,7 @@ class Vector3Model extends TypeModel<Vector3> {
     }
 
     public override test(x: unknown): x is Vector3 {
-        return sentry.objectOf({
+        return sentry.structOf({
             x: sentry.number.nonNaN(),
             y: sentry.number.nonNaN(),
             z: sentry.number.nonNaN()
