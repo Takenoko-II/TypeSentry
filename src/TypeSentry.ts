@@ -603,16 +603,16 @@ class SetModel<T> extends TypeModel<Set<T>> {
     }
 }
 
-class ClassModel<T> extends TypeModel<T> {
-    private constructor(private readonly constructorObject: Function) {
+class ClassModel<T extends abstract new (...args: unknown[]) => unknown> extends TypeModel<InstanceType<T>> {
+    private constructor(private readonly constructorObject: T) {
         super();
     }
 
-    public test(x: unknown): x is T {
+    public test(x: unknown): x is InstanceType<T> {
         return x instanceof this.constructorObject;
     }
 
-    public static newInstance<U extends Function>(constructor: U): ClassModel<U["prototype"]> {
+    public static newInstance<U extends abstract new (...args: unknown[]) => unknown>(constructor: U): ClassModel<U> {
         return new this(constructor);
     }
 
@@ -1157,7 +1157,7 @@ export class TypeSentry {
      * @param constructor クラス(コンストラクタ)オブジェクト
      * @returns 任意のクラス型の`TypeModel`
      */
-    public classOf<U extends Function>(constructor: U): ClassModel<U["prototype"]> {
+    public classOf<U extends abstract new (...args: unknown[]) => unknown>(constructor: U): ClassModel<U> {
         return ClassModel.newInstance(constructor);
     }
 
