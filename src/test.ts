@@ -67,3 +67,5 @@ const testModel: TypeModel<Test> = sentry.structOf({
 }).exact();
 
 console.log(testModel.test({ id: "a", count: 4 }));
+
+console.log(sentry.symbolOf(Symbol("a")).toString())

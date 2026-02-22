@@ -407,20 +407,31 @@ class FunctionModel extends TypeModel<Function> {
     public static readonly INSTANCE: FunctionModel = new this();
 }
 
-class SymbolModel extends TypeModel<symbol> {
-    private constructor() {
+class SymbolModel<T extends symbol> extends TypeModel<symbol> {
+    private readonly symbol: T | undefined;
+
+    public constructor(symbol: T | undefined) {
         super();
+        this.symbol = symbol;
     }
 
-    public test(x: unknown): x is symbol {
-        return typeof x === "symbol";
+    public test(x: unknown): x is T {
+        if (this.symbol === undefined) {
+            return typeof x === "symbol"
+        }
+        else {
+            return x === this.symbol;
+        }
     }
 
     public override toString(): string {
-        return "symbol";
+        if (this.symbol === undefined) {
+            return "symbol";
+        }
+        else {
+            return `symbol { ${this.symbol.description ?? "no description"} }`;
+        }
     }
-
-    public static readonly INSTANCE: SymbolModel = new this();
 }
 
 type ExtractTypes<U extends TypeModel<unknown>[]> = U[number] extends TypeModel<infer V> ? V : never;
@@ -1017,7 +1028,14 @@ export class TypeSentry {
     /**
      * `symbol`
      */
-    public readonly symbol: SymbolModel = SymbolModel.INSTANCE;
+    public readonly symbol: SymbolModel<symbol> = new SymbolModel(undefined);
+
+    /**
+     * 特定の `symbol` オブジェクト
+     */
+    public symbolOf<const U extends symbol>(symbol: U): SymbolModel<U> {
+        return new SymbolModel(symbol);
+    }
 
     /**
      * 全てのスーパークラス `any`    
@@ -1196,7 +1214,13 @@ export class TypeSentry {
 
 /**
  * `TypeSentry`のインスタンス
+ * @obsolete @minecraft/diagnostics との名称衝突のため
  */
 export const sentry: TypeSentry = (class extends TypeSentry {
     public static readonly INSTANCE: TypeSentry = new this(SYMBOL_FOR_PRIVATE_CONSTRUCTOR);
 }).INSTANCE;
+
+/**
+ * `sentry` のエイリアス
+ */
+export const typeSentry: TypeSentry = sentry;

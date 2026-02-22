@@ -19,6 +19,6 @@
         // "noUncheckedIndexedAccess": true, lengthの参照によるチェックをチェックとして判定してくれないから冗長
         "declaration": true,
         "rootDir": "src",
-        "outDir": "dest",
+        "outDir": "dest"
     }
 }

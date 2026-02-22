@@ -194,6 +194,9 @@ class VoidModel extends TypeModel {
     }
     static INSTANCE = new this();
 }
+/**
+ * @deprecated
+ */
 class ObjectModel extends TypeModel {
     object;
     constructor(object) {
@@ -293,6 +296,9 @@ class ArrayModel extends TypeModel {
         return this.type.toString() + "[]";
     }
 }
+/**
+ * @deprecated
+ */
 class FunctionModel extends TypeModel {
     constructor() {
         super();
@@ -306,16 +312,27 @@ class FunctionModel extends TypeModel {
     static INSTANCE = new this();
 }
 class SymbolModel extends TypeModel {
-    constructor() {
+    symbol;
+    constructor(symbol) {
         super();
+        this.symbol = symbol;
     }
     test(x) {
-        return typeof x === "symbol";
+        if (this.symbol === undefined) {
+            return typeof x === "symbol";
+        }
+        else {
+            return x === this.symbol;
+        }
     }
     toString() {
-        return "symbol";
+        if (this.symbol === undefined) {
+            return "symbol";
+        }
+        else {
+            return `symbol { ${this.symbol.description ?? "no description"} }`;
+        }
     }
-    static INSTANCE = new this();
 }
 class UnionModel extends TypeModel {
     types;
@@ -349,7 +366,7 @@ class IntersectionModel extends TypeModel {
         return new this(...types);
     }
 }
-class OptionalModel extends TypeModel {
+class UndefindableModel extends TypeModel {
     type;
     constructor(type) {
         super();
@@ -360,8 +377,8 @@ class OptionalModel extends TypeModel {
             || sentry.undefined.test(x);
     }
     /**
-     * `optional`を解除し、もとの型の`TypeModel`を返します。
-     * @returns `optional`を解除した型を表現する`TypeModel`インスタンス
+     * `undefindable`を解除し、もとの型の`TypeModel`を返します。
+     * @returns `undefindable`を解除した型を表現する`TypeModel`インスタンス
      */
     unwrap() {
         return this.type;
@@ -493,6 +510,9 @@ class TupleModel extends TypeModel {
         }
         return true;
     }
+    getModelAt(index) {
+        return this.tuple[index];
+    }
     toString() {
         let string = "[";
         let first = true;
@@ -613,7 +633,7 @@ class NeoOptionalModel extends TypeModel {
         return this.type.test(x);
     }
     toString() {
-        return "NeoOptional<" + this.type + ">";
+        return this.type.toString();
     }
     static newInstance(w) {
         return new NeoOptionalModel(w);
@@ -666,6 +686,9 @@ class NeoObjectModel extends TypeModel {
             }
         })(this.object);
     }
+    getModelOfKey(key) {
+        return this.object[key];
+    }
     toString() {
         let string = "{";
         let first = true;
@@ -681,7 +704,12 @@ class NeoObjectModel extends TypeModel {
                 k = k.replace(/"/g, "\\\"");
             }
             string += k;
-            string += ": ";
+            if (model instanceof NeoOptionalModel) {
+                string += "?: ";
+            }
+            else {
+                string += ": ";
+            }
             string += model.toString();
             first = false;
         }
@@ -690,6 +718,40 @@ class NeoObjectModel extends TypeModel {
     }
     static newInstance(object) {
         return new this(object);
+    }
+}
+class NeoFunctionModel extends TypeModel {
+    args;
+    returns;
+    constructor(args, returns) {
+        super();
+        this.args = args;
+        this.returns = returns;
+    }
+    test(x) {
+        return typeof x === "function";
+    }
+    getArgumentModelAt(index) {
+        return this.args[index];
+    }
+    getReturnValueModel() {
+        return this.returns;
+    }
+    toString() {
+        let s = "(";
+        let first = true;
+        for (const arg of this.args) {
+            if (!first)
+                s += ", ";
+            s += arg.toString();
+            first = false;
+        }
+        s += ") => ";
+        s += this.returns;
+        return s;
+    }
+    static newInstance(args, returns) {
+        return new NeoFunctionModel(args, returns);
     }
 }
 /**
@@ -728,6 +790,8 @@ export class TypeSentry {
     string = StringModel.INSTANCE;
     /**
      * 第一級オブジェクト `function`
+     * @deprecated コンパイル時チェックを付けました
+     * @see NeoFunctionModel
      */
     function = FunctionModel.INSTANCE;
     /**
@@ -745,7 +809,13 @@ export class TypeSentry {
     /**
      * `symbol`
      */
-    symbol = SymbolModel.INSTANCE;
+    symbol = new SymbolModel(undefined);
+    /**
+     * 特定の `symbol` オブジェクト
+     */
+    symbolOf(symbol) {
+        return new SymbolModel(symbol);
+    }
     /**
      * 全てのスーパークラス `any`
      * 基本的に非推奨
@@ -769,16 +839,18 @@ export class TypeSentry {
      * 第一級オブジェクト `object`
      * @param object `{キー1: TypeModel, キー2: TypeModel, ...}`の形式で与えられる連想配列
      * @returns 連想配列型を表現する`TypeModel`
+     * @deprecated オプショナルプロパティを正確に表現可能なものに置き換えられました
+     * @see NeoObjectModel
      */
     objectOf(object) {
         return ObjectModel.newInstance(object);
     }
     /**
-     * 第一級オブジェクト `object`
+     * @link `objectOf()`の改良版
      * @param object `{キー1: TypeModel, キー2: TypeModel, ...}`の形式で与えられる連想配列
      * @returns 連想配列型を表現する`TypeModel`
      */
-    neoObjectOf(object) {
+    structOf(object) {
         return NeoObjectModel.newInstance(object);
     }
     /**
@@ -840,19 +912,20 @@ export class TypeSentry {
         return IntersectionModel.newInstance(...types);
     }
     /**
-     * `undefined`との合併型のエイリアス `optional`型
+     * `undefined`との合併型のエイリアス `undefindable`型
+     * @param types `undefindable`型でラップする型の`TypeModel`
+     * @returns `undefindable`型を表現する`TypeModel`
+     */
+    undefindableOf(type) {
+        return UndefindableModel.newInstance(type);
+    }
+    /**
+     * `optionalOf()`の改良版
+     * `structOf()`とセットで使うことで真価を発揮する
      * @param types `optional`型でラップする型の`TypeModel`
      * @returns `optional`型を表現する`TypeModel`
      */
     optionalOf(type) {
-        return OptionalModel.newInstance(type);
-    }
-    /**
-     * `undefined`との合併型のエイリアス「ではない」、真の `optional`型
-     * @param types `optional`型でラップする型の`TypeModel`
-     * @returns `optional`型を表現する`TypeModel`
-     */
-    neoOptionalOf(type) {
         return NeoOptionalModel.newInstance(type);
     }
     /**
@@ -888,10 +961,24 @@ export class TypeSentry {
     enumLikeOf(enumeration) {
         return EnumLikeModel.newInstance(enumeration);
     }
+    /**
+     * 任意の関数型を表現する型(実行時チェックは当然ない)
+     * @param parameters 引数型の配列
+     * @param returnValue 戻り値の型
+     * @returns 関数型の`TypeModel`
+     */
+    functionOf(parameters, returnValue) {
+        return NeoFunctionModel.newInstance(parameters, returnValue);
+    }
 }
 /**
  * `TypeSentry`のインスタンス
+ * @obsolete @minecraft/diagnostics との名称衝突のため
  */
 export const sentry = (class extends TypeSentry {
     static INSTANCE = new this(SYMBOL_FOR_PRIVATE_CONSTRUCTOR);
 }).INSTANCE;
+/**
+ * `sentry` のエイリアス
+ */
+export const typeSentry = sentry;

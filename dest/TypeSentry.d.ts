@@ -116,6 +116,9 @@ declare class VoidModel extends TypeModel<void> {
 type ExtractTypeInObjectValue<T> = {
     [K in keyof T]: T[K] extends TypeModel<infer U> ? U : never;
 };
+/**
+ * @deprecated
+ */
 declare class ObjectModel<T> extends TypeModel<T> {
     private readonly object;
     protected constructor(object: T);
@@ -145,17 +148,20 @@ declare class ArrayModel<T> extends TypeModel<T[]> {
     getModelOfElement(): TypeModel<T>;
     toString(): string;
 }
+/**
+ * @deprecated
+ */
 declare class FunctionModel extends TypeModel<Function> {
     private constructor();
     test(x: unknown): x is Function;
     toString(): string;
     static readonly INSTANCE: FunctionModel;
 }
-declare class SymbolModel extends TypeModel<symbol> {
-    private constructor();
-    test(x: unknown): x is symbol;
+declare class SymbolModel<T extends symbol> extends TypeModel<symbol> {
+    private readonly symbol;
+    constructor(symbol: T | undefined);
+    test(x: unknown): x is T;
     toString(): string;
-    static readonly INSTANCE: SymbolModel;
 }
 type ExtractTypes<U extends TypeModel<unknown>[]> = U[number] extends TypeModel<infer V> ? V : never;
 declare class UnionModel<T> extends TypeModel<T> {
@@ -174,17 +180,17 @@ declare class IntersectionModel<T> extends TypeModel<T> {
     toString(): string;
     static newInstance<U extends TypeModel<unknown>[]>(...types: U): IntersectionModel<ExtractIntersectTypes<U>>;
 }
-declare class OptionalModel<T> extends TypeModel<T | undefined> {
+declare class UndefindableModel<T> extends TypeModel<T | undefined> {
     private readonly type;
     private constructor();
     test(x: unknown): x is (T | undefined);
     /**
-     * `optional`を解除し、もとの型の`TypeModel`を返します。
-     * @returns `optional`を解除した型を表現する`TypeModel`インスタンス
+     * `undefindable`を解除し、もとの型の`TypeModel`を返します。
+     * @returns `undefindable`を解除した型を表現する`TypeModel`インスタンス
      */
     unwrap(): TypeModel<T>;
     toString(): string;
-    static newInstance<U>(type: TypeModel<U>): OptionalModel<U>;
+    static newInstance<U>(type: TypeModel<U>): UndefindableModel<U>;
 }
 declare class NullableModel<T> extends TypeModel<T | null> {
     private readonly type;
@@ -226,11 +232,17 @@ declare class SetModel<T> extends TypeModel<Set<T>> {
     getModelOfElement(): TypeModel<T>;
     toString(): string;
 }
-declare class ClassModel<T> extends TypeModel<T> {
+type ClassLike<T> = (abstract new (...args: unknown[]) => T) | (Function & {
+    readonly prototype: T;
+});
+type InstanceOfClassLike<T extends ClassLike<unknown>> = T extends {
+    readonly prototype: infer I;
+} ? I : never;
+declare class ClassModel<T extends ClassLike<unknown>> extends TypeModel<InstanceOfClassLike<T>> {
     private readonly constructorObject;
     private constructor();
-    test(x: unknown): x is T;
-    static newInstance<U extends Function>(constructor: U): ClassModel<U["prototype"]>;
+    test(x: unknown): x is InstanceOfClassLike<T>;
+    static newInstance<U extends ClassLike<unknown>>(constructor: U): ClassModel<U>;
     toString(): string;
 }
 type TypeModelArrayToTuple<T extends TypeModel<unknown>[]> = {
@@ -240,6 +252,7 @@ declare class TupleModel<T extends TypeModel<unknown>[]> extends TypeModel<TypeM
     private readonly tuple;
     private constructor();
     test(x: unknown): x is TypeModelArrayToTuple<T>;
+    getModelAt<N extends number>(index: N): T[N];
     toString(): string;
     static newInstance<T extends TypeModel<unknown>[]>(...elements: T): TupleModel<T>;
 }
@@ -292,17 +305,30 @@ declare class NeoOptionalModel<T> extends TypeModel<T> {
     toString(): string;
     static newInstance<const W>(w: TypeModel<W>): NeoOptionalModel<W>;
 }
-declare class NeoObjectModel<T extends Record<string | number | symbol, TypeModel<unknown>>> extends TypeModel<T> {
+declare class NeoObjectModel<T extends Record<string | number | symbol, TypeModel<unknown>>> extends TypeModel<ExtractTypeInObjectOptionableValue<T>> {
     private readonly object;
     protected constructor(object: T);
-    test(x: unknown): x is T;
+    test(x: unknown): x is ExtractTypeInObjectOptionableValue<T>;
     /**
      * オブジェクトが過剰な数のキーを持たない連想配列であることを実行時の検査において追加で要求するインスタンスを新しく生成します。
      * @returns ランタイム条件付きインスタンス
      */
     exact(): NeoObjectModel<T>;
+    getModelOfKey<const K extends keyof T>(key: K): T[K];
     toString(): string;
-    static newInstance<U extends Record<string | number | symbol, TypeModel<unknown>>>(object: U): NeoObjectModel<ExtractTypeInObjectOptionableValue<U>>;
+    static newInstance<U extends Record<string | number | symbol, TypeModel<unknown>>>(object: U): NeoObjectModel<U>;
+}
+type DynamicFunction<A extends unknown[], R> = (...args: A) => R;
+type TypeModelsToFunc<A extends TypeModel<unknown>[], R extends TypeModel<unknown>> = DynamicFunction<TypeModelArrayToTuple<A>, R extends TypeModel<infer I> ? I : never>;
+declare class NeoFunctionModel<A extends TypeModel<unknown>[], R extends TypeModel<unknown>> extends TypeModel<TypeModelsToFunc<A, R>> {
+    private readonly args;
+    private readonly returns;
+    constructor(args: A, returns: R);
+    test(x: unknown): x is TypeModelsToFunc<A, R>;
+    getArgumentModelAt<const N extends number>(index: N): A[N];
+    getReturnValueModel(): R;
+    toString(): string;
+    static newInstance<A extends TypeModel<unknown>[], R extends TypeModel<unknown>>(args: A, returns: R): NeoFunctionModel<A, R>;
 }
 declare const SYMBOL_FOR_PRIVATE_CONSTRUCTOR: unique symbol;
 /**
@@ -332,6 +358,8 @@ export declare class TypeSentry {
     readonly string: StringModel;
     /**
      * 第一級オブジェクト `function`
+     * @deprecated コンパイル時チェックを付けました
+     * @see NeoFunctionModel
      */
     readonly function: FunctionModel;
     /**
@@ -349,7 +377,11 @@ export declare class TypeSentry {
     /**
      * `symbol`
      */
-    readonly symbol: SymbolModel;
+    readonly symbol: SymbolModel<symbol>;
+    /**
+     * 特定の `symbol` オブジェクト
+     */
+    symbolOf<const U extends symbol>(symbol: U): SymbolModel<U>;
     /**
      * 全てのスーパークラス `any`
      * 基本的に非推奨
@@ -373,14 +405,16 @@ export declare class TypeSentry {
      * 第一級オブジェクト `object`
      * @param object `{キー1: TypeModel, キー2: TypeModel, ...}`の形式で与えられる連想配列
      * @returns 連想配列型を表現する`TypeModel`
+     * @deprecated オプショナルプロパティを正確に表現可能なものに置き換えられました
+     * @see NeoObjectModel
      */
     objectOf<U extends Record<string | number | symbol, TypeModel<unknown>>>(object: U): ObjectModel<ExtractTypeInObjectValue<U>>;
     /**
-     * 第一級オブジェクト `object`
+     * @link `objectOf()`の改良版
      * @param object `{キー1: TypeModel, キー2: TypeModel, ...}`の形式で与えられる連想配列
      * @returns 連想配列型を表現する`TypeModel`
      */
-    neoObjectOf<U extends Record<string | number | symbol, TypeModel<unknown>>>(object: U): NeoObjectModel<ExtractTypeInObjectOptionableValue<U>>;
+    structOf<U extends Record<string | number | symbol, TypeModel<unknown>>>(object: U): NeoObjectModel<U>;
     /**
      * 第一級オブジェクト `array`
      * @param type 配列の要素の型を表現する`TypeModel`
@@ -426,17 +460,18 @@ export declare class TypeSentry {
      */
     intersectionOf<U extends TypeModel<unknown>[]>(...types: U): IntersectionModel<ExtractIntersectTypes<U>>;
     /**
-     * `undefined`との合併型のエイリアス `optional`型
-     * @param types `optional`型でラップする型の`TypeModel`
-     * @returns `optional`型を表現する`TypeModel`
+     * `undefined`との合併型のエイリアス `undefindable`型
+     * @param types `undefindable`型でラップする型の`TypeModel`
+     * @returns `undefindable`型を表現する`TypeModel`
      */
-    optionalOf<U>(type: TypeModel<U>): OptionalModel<U>;
+    undefindableOf<U>(type: TypeModel<U>): UndefindableModel<U>;
     /**
-     * `undefined`との合併型のエイリアス「ではない」、真の `optional`型
+     * `optionalOf()`の改良版
+     * `structOf()`とセットで使うことで真価を発揮する
      * @param types `optional`型でラップする型の`TypeModel`
      * @returns `optional`型を表現する`TypeModel`
      */
-    neoOptionalOf<U>(type: TypeModel<U>): NeoOptionalModel<U>;
+    optionalOf<U>(type: TypeModel<U>): NeoOptionalModel<U>;
     /**
      * `null`との合併型のエイリアス `nullable`型
      * @param types `nulleable`型でラップする型の`TypeModel`
@@ -448,7 +483,7 @@ export declare class TypeSentry {
      * @param constructor クラス(コンストラクタ)オブジェクト
      * @returns 任意のクラス型の`TypeModel`
      */
-    classOf<U extends Function>(constructor: U): ClassModel<U["prototype"]>;
+    classOf<U extends ClassLike<unknown>>(constructor: U): ClassModel<U>;
     /**
      * 任意のリテラルを表現する型
      * @param literal リテラル値
@@ -462,9 +497,21 @@ export declare class TypeSentry {
      * @experimental
      */
     enumLikeOf<U extends Record<string, string | number>>(enumeration: U): EnumLikeModel<U>;
+    /**
+     * 任意の関数型を表現する型(実行時チェックは当然ない)
+     * @param parameters 引数型の配列
+     * @param returnValue 戻り値の型
+     * @returns 関数型の`TypeModel`
+     */
+    functionOf<const A extends TypeModel<unknown>[], R extends TypeModel<unknown>>(parameters: A, returnValue: R): NeoFunctionModel<A, R>;
 }
 /**
  * `TypeSentry`のインスタンス
+ * @obsolete @minecraft/diagnostics との名称衝突のため
  */
 export declare const sentry: TypeSentry;
+/**
+ * `sentry` のエイリアス
+ */
+export declare const typeSentry: TypeSentry;
 export {};
